@@ -45,15 +45,15 @@ export function HoldingCard({
         </div>
         <div>
           <p className="text-gray-500">Current Price</p>
-          <p className="font-semibold text-gray-900">${currentPrice.toFixed(2)}</p>  {/* <- MÁS OSCURO */}
+          <p className="font-semibold text-gray-900">${currentPrice?.toFixed(2) || '0.00'}</p>  {/* <- MÁS OSCURO */}
         </div>
         <div>
           <p className="text-gray-500">Avg Price</p>
-          <p className="font-semibold text-gray-900">${averagePrice.toFixed(2)}</p>  {/* <- MÁS OSCURO */}
+          <p className="font-semibold text-gray-900">${averagePrice?.toFixed(2) || '0.00'}</p>  {/* <- MÁS OSCURO */}
         </div>
         <div>
           <p className="text-gray-500">Total Value</p>
-          <p className="font-semibold text-gray-900">${currentValue.toFixed(2)}</p>  {/* <- MÁS OSCURO */}
+          <p className="font-semibold text-gray-900">${currentValue?.toFixed(2) || '0.00'}</p>  {/* <- MÁS OSCURO */}
         </div>
       </div>
       <div className="mt-4 pt-4 border-t border-gray-100">

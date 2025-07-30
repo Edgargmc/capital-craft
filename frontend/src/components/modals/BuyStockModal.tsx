@@ -163,7 +163,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Price per share:</span>
-                  <span className="font-semibold text-gray-900">${stockData.current_price.toFixed(2)}</span>  {/* <- MÁS OSCURO */}
+                  <span className="font-semibold text-gray-900">${stockData.current_price?.toFixed(2) || '0.00'}</span>  {/* <- MÁS OSCURO */}
                 </div>
                 <div className="border-t border-blue-200 pt-2">
                   <div className="flex justify-between font-semibold text-gray-900">  {/* <- AGREGADO text-gray-900 */}

@@ -99,7 +99,7 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                   <option value="">Choose a stock...</option>
                   {holdingsList.map((holding) => (
                     <option key={holding.symbol} value={holding.symbol}>
-                      {holding.symbol} - {holding.shares} shares @ ${holding.current_price.toFixed(2)}
+                      {holding.symbol} - {holding.shares} shares @ ${holding.current_price?.toFixed(2) || '0.00'}
                     </option>
                   ))}
                 </select>
@@ -111,7 +111,7 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">{holding.symbol}</h3>
                     <span className="text-blue-600 font-semibold">
-                      ${holding.current_price.toFixed(2)}
+                      ${holding.current_price?.toFixed(2) || '0.00'}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -121,11 +121,11 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                     </div>
                     <div>
                       <p className="text-gray-500">Avg Price</p>
-                      <p className="font-medium">${holding.average_price.toFixed(2)}</p>
+                      <p className="font-medium">${holding.average_price?.toFixed(2) || '0.00'}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Total Value</p>
-                      <p className="font-medium">${holding.current_value.toFixed(2)}</p>
+                      <p className="font-medium">${holding.current_value?.toFixed(2) || '0.00'}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">P&L</p>
@@ -188,12 +188,12 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Current price:</span>
-                      <span className="font-medium text-gray-800">${holding.current_price.toFixed(2)}</span>
+                      <span className="font-medium text-gray-800">${holding.current_price?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="border-t border-red-200 pt-2">
                       <div className="flex justify-between font-semibold">
                         <span className="font-medium text-gray-800">You&apos;ll Receive:</span>
-                        <span className="font-medium text-gray-800">${sellValue.toFixed(2)}</span>
+                        <span className="font-medium text-gray-800">${sellValue?.toFixed(2) || '0.00'}</span>
                       </div>
                     </div>
                     <div className="flex justify-between text-xs">
