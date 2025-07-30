@@ -34,10 +34,10 @@ export function AppLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <Header 
-          summary={headerData} 
+          summary={headerData || null} 
           loading={headerLoading}
-          onBuyClick={onBuyClick}    // <- PASAR
-          onSellClick={onSellClick}  // <- PASAR
+          onBuyClick={onBuyClick}
+          onSellClick={onSellClick}
         />
         
         <main className="flex-1 overflow-y-auto">
