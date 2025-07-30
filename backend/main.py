@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException  # <- Faltaba HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.entities.stock import Stock
 from decimal import Decimal
 from app.use_cases.get_stock_data import GetStockDataUseCase
@@ -9,8 +10,18 @@ from app.use_cases.get_portfolio_summary import GetPortfolioSummary
 from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
 
-
 app = FastAPI(title="Capital Craft")
+
+# Agregar middleware CORS
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,  # Frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():
