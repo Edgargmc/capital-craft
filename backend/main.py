@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.use_cases.get_portfolio_summary import GetPortfolioSummary
 from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
+import os 
 
 app = FastAPI(title="Capital Craft")
 
