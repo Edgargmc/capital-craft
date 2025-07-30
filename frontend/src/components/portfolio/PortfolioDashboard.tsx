@@ -82,7 +82,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
           {/* Welcome Section */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
-            <p className="text-gray-600">Here's how your portfolio is performing today.</p>
+            <p className="text-gray-600">Here&apos;s how your portfolio is performing today.</p>
           </div>
 
           {/* Holdings Section */}

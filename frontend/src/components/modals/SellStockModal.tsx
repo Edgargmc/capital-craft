@@ -192,7 +192,7 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                     </div>
                     <div className="border-t border-red-200 pt-2">
                       <div className="flex justify-between font-semibold">
-                        <span className="font-medium text-gray-800">You'll Receive:</span>
+                        <span className="font-medium text-gray-800">You&apos;ll Receive:</span>
                         <span className="font-medium text-gray-800">${sellValue.toFixed(2)}</span>
                       </div>
                     </div>

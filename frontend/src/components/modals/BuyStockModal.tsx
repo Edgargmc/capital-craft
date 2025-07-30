@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Search, DollarSign, TrendingUp } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 import { CapitalCraftAPI, Stock } from '@/lib/api';
 
 interface BuyStockModalProps {
