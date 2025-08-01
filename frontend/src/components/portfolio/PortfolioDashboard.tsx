@@ -37,7 +37,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
 
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [userId, fetchData]);
 
   const headerData = summary ? {
     cashBalance: summary.cash_balance,
