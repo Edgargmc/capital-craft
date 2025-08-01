@@ -10,8 +10,10 @@ from app.use_cases.buy_stock import BuyStock
 from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
 import os 
+from dotenv import load_dotenv
 
 
+load_dotenv()
 
 
 app = FastAPI(title="Capital Craft")
