@@ -17,7 +17,7 @@ interface PortfolioRisk {
   label: string;
   color: string;
   bgColor: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
   description: string;
 }
 
@@ -85,7 +85,7 @@ class PortfolioRiskCalculator {
 
 // Portfolio Risk Badge Component
 interface PortfolioRiskBadgeProps {
-  holdings: Record<string, any>;
+  holdings: Record<string, { symbol: string; shares: number; current_value: number; beta?: number }>;
 }
 
 const PortfolioRiskBadge: React.FC<PortfolioRiskBadgeProps> = ({ holdings }) => {
@@ -143,7 +143,8 @@ interface HeaderProps {
     totalUnrealizedPnl: number;
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
-    holdings: Record<string, any>;
+    holdings: Record<string, { symbol: string; shares: number; current_value: number; beta?: number }>;
+
   } | null;
   loading: boolean;
   onBuyClick: () => void;
