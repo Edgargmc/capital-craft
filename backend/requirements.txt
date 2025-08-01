@@ -3,3 +3,4 @@ uvicorn==0.35.0
 yfinance==0.2.24
 pytest==7.4.3
 requests==2.31.0
+python-dotenv==1.0.0
