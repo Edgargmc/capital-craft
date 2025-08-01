@@ -1,5 +1,7 @@
+
 import requests
 import time
+import json  # Add for pretty printing
 from decimal import Decimal
 from app.core.entities.stock import Stock
 from app.core.interfaces.stock_data_provider import StockDataProvider
@@ -15,6 +17,8 @@ class AlphaVantageProvider(StockDataProvider):
     def get_stock_data(self, symbol: str) -> Stock:
         """Fetch real stock data from Alpha Vantage API"""
         try:
+            print(f"\n🚀 FETCHING DATA FOR: {symbol}")
+            
             # Get quote data (price)
             quote_data = self._get_quote_data(symbol)
             
@@ -34,6 +38,8 @@ class AlphaVantageProvider(StockDataProvider):
     
     def _get_quote_data(self, symbol: str) -> dict:
         """Get current quote data from Alpha Vantage"""
+        print(f"📊 Fetching QUOTE data for {symbol}...")
+        
         params = {
             'function': 'GLOBAL_QUOTE',
             'symbol': symbol,
@@ -44,6 +50,12 @@ class AlphaVantageProvider(StockDataProvider):
         response.raise_for_status()
         
         data = response.json()
+        
+        # 🔍 DEBUG: Print full quote response
+        print(f"📈 QUOTE API RESPONSE for {symbol}:")
+        print("=" * 50)
+        print(json.dumps(data, indent=2))
+        print("=" * 50)
         
         # Check for API errors
         if 'Error Message' in data:
@@ -56,10 +68,16 @@ class AlphaVantageProvider(StockDataProvider):
         if 'Global Quote' not in data or not data['Global Quote']:
             raise ValueError(f"No quote data found for {symbol}")
         
-        return data['Global Quote']
+        quote = data['Global Quote']
+        print(f"📊 EXTRACTED QUOTE DATA:")
+        print(json.dumps(quote, indent=2))
+        
+        return quote
     
     def _get_company_overview(self, symbol: str) -> Optional[dict]:
         """Get company overview data from Alpha Vantage"""
+        print(f"🏢 Fetching OVERVIEW data for {symbol}...")
+        
         try:
             params = {
                 'function': 'OVERVIEW',
@@ -72,26 +90,43 @@ class AlphaVantageProvider(StockDataProvider):
             
             data = response.json()
             
+            # 🔍 DEBUG: Print full overview response
+            print(f"🏢 OVERVIEW API RESPONSE for {symbol}:")
+            print("=" * 50)
+            print(json.dumps(data, indent=2))
+            print("=" * 50)
+            
             # Check for errors (but don't fail if overview is not available)
             if 'Error Message' in data or 'Note' in data or not data:
+                print(f"⚠️  Overview data not available for {symbol}")
                 return None
             
+            print(f"✅ Overview data available for {symbol}")
             return data
             
-        except:
+        except Exception as e:
+            print(f"❌ Overview fetch failed for {symbol}: {str(e)}")
             # If overview fails, continue without it
             return None
     
     def _map_to_stock(self, symbol: str, quote_data: dict, overview_data: Optional[dict]) -> Stock:
         """Map Alpha Vantage response to Stock entity"""
         
+        print(f"\n🗺️  MAPPING DATA TO STOCK ENTITY for {symbol}")
+        print(f"Quote keys available: {list(quote_data.keys())}")
+        if overview_data:
+            print(f"Overview keys available: {list(overview_data.keys())}")
+        
         # Extract price from quote data
         # Alpha Vantage returns: "05. price": "185.43"
         price_key = "05. price"
         if price_key not in quote_data:
+            print(f"❌ Price key '{price_key}' not found in quote data")
+            print(f"Available keys: {list(quote_data.keys())}")
             raise ValueError(f"Price data not available for {symbol}")
         
         current_price = Decimal(quote_data[price_key])
+        print(f"💰 Extracted price: {current_price}")
         
         # Extract company data from overview (with fallbacks)
         if overview_data:
@@ -99,14 +134,22 @@ class AlphaVantageProvider(StockDataProvider):
             sector = overview_data.get('Sector', 'Unknown')
             market_cap = self._safe_int(overview_data.get('MarketCapitalization'))
             pe_ratio = self._safe_decimal(overview_data.get('PERatio'))
+            
+            print(f"🏷️  Extracted from overview:")
+            print(f"   Name: {name}")
+            print(f"   Sector: {sector}")
+            print(f"   Market Cap: {market_cap}")
+            print(f"   PE Ratio: {pe_ratio}")
         else:
             # Fallback if overview is not available
             name = symbol
             sector = 'Unknown'
             market_cap = None
             pe_ratio = None
+            
+            print(f"⚠️  Using fallback data (no overview)")
         
-        return Stock(
+        final_stock = Stock(
             symbol=symbol.upper(),
             current_price=current_price,
             name=name,
@@ -114,6 +157,17 @@ class AlphaVantageProvider(StockDataProvider):
             market_cap=market_cap,
             pe_ratio=pe_ratio
         )
+        
+        print(f"✅ FINAL STOCK ENTITY:")
+        print(f"   Symbol: {final_stock.symbol}")
+        print(f"   Price: {final_stock.current_price}")
+        print(f"   Name: {final_stock.name}")
+        print(f"   Sector: {final_stock.sector}")
+        print(f"   Market Cap: {final_stock.market_cap}")
+        print(f"   PE Ratio: {final_stock.pe_ratio}")
+        print("=" * 60)
+        
+        return final_stock
     
     def _safe_int(self, value) -> Optional[int]:
         """Safely convert to int with None fallback"""
@@ -132,4 +186,3 @@ class AlphaVantageProvider(StockDataProvider):
         except:
             pass
         return None
-
