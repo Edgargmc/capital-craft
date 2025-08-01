@@ -1,7 +1,141 @@
 'use client';
 
-import { DollarSign, TrendingUp, TrendingDown, PieChart } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame } from 'lucide-react';
+import React from 'react';
 
+// Portfolio Risk Calculator (from previous component)
+interface Holding {
+  symbol: string;
+  shares: number;
+  current_value: number;
+  beta?: number;
+}
+
+interface PortfolioRisk {
+  level: 'conservative' | 'balanced' | 'aggressive' | 'not-rated';
+  avgBeta: number | null;
+  label: string;
+  color: string;
+  bgColor: string;
+  icon: React.ComponentType<any>;
+  description: string;
+}
+
+class PortfolioRiskCalculator {
+  static calculate(holdings: Record<string, Holding>): PortfolioRisk {
+    const holdingsArray = Object.values(holdings);
+    
+    if (holdingsArray.length === 0) {
+      return {
+        level: 'not-rated',
+        avgBeta: null,
+        label: 'Not Rated',
+        color: 'text-gray-500',
+        bgColor: 'bg-gray-100',
+        icon: Scale,
+        description: 'Add stocks to see portfolio risk assessment'
+      };
+    }
+
+    let totalValue = 0;
+    let weightedBetaSum = 0;
+
+    holdingsArray.forEach(holding => {
+      const value = holding.current_value;
+      totalValue += value;
+      const beta = holding.beta ?? 1.0;
+      weightedBetaSum += beta * value;
+    });
+
+    const avgBeta = totalValue > 0 ? weightedBetaSum / totalValue : 1.0;
+
+    if (avgBeta < 1.0) {
+      return {
+        level: 'conservative',
+        avgBeta,
+        label: 'Conservative',
+        color: 'text-green-700',
+        bgColor: 'bg-green-100',
+        icon: Shield,
+        description: 'Lower risk than market average. More stable, less volatile returns.'
+      };
+    } else if (avgBeta <= 1.3) {
+      return {
+        level: 'balanced',
+        avgBeta,
+        label: 'Balanced',
+        color: 'text-blue-700',
+        bgColor: 'bg-blue-100',
+        icon: Scale,
+        description: 'Moderate risk similar to market. Balanced volatility and growth potential.'
+      };
+    } else {
+      return {
+        level: 'aggressive',
+        avgBeta,
+        label: 'Aggressive',
+        color: 'text-red-700',
+        bgColor: 'bg-red-100',
+        icon: Flame,
+        description: 'Higher risk than market. More volatile but potential for higher returns.'
+      };
+    }
+  }
+}
+
+// Portfolio Risk Badge Component
+interface PortfolioRiskBadgeProps {
+  holdings: Record<string, any>;
+}
+
+const PortfolioRiskBadge: React.FC<PortfolioRiskBadgeProps> = ({ holdings }) => {
+  const risk = PortfolioRiskCalculator.calculate(holdings);
+  const Icon = risk.icon;
+
+  return (
+    <div className="flex items-center space-x-2">
+      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${risk.color} ${risk.bgColor} transition-colors duration-200`}>
+        <Icon className="h-3 w-3 mr-1" />
+        <span className="hidden sm:inline">{risk.label}</span>
+        <span className="sm:hidden">{risk.label.slice(0, 4)}</span>
+        {risk.avgBeta && (
+          <span className="ml-1 text-xs opacity-75 hidden md:inline">
+            β{risk.avgBeta.toFixed(2)}
+          </span>
+        )}
+      </div>
+      
+      {/* Educational Tooltip */}
+      <div className="relative group hidden lg:block">
+        <div className="cursor-help text-gray-400 hover:text-gray-600">
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+        </div>
+        
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-[60]">
+          <div className="bg-gray-900 text-white p-3 rounded-lg shadow-xl max-w-64 text-sm">
+            <div className="font-medium text-blue-300 mb-1">Portfolio Risk Level</div>
+            <p className="text-gray-300 text-xs leading-relaxed">{risk.description}</p>
+            {risk.avgBeta && (
+              <div className="mt-2 pt-2 border-t border-gray-700">
+                <span className="text-xs text-yellow-300">
+                  💡 Beta {risk.avgBeta.toFixed(2)} vs Market Beta 1.0
+                </span>
+              </div>
+            )}
+            
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+              <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Updated Header Props
 interface HeaderProps {
   summary: {
     cashBalance: number;
@@ -9,6 +143,7 @@ interface HeaderProps {
     totalUnrealizedPnl: number;
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
+    holdings: Record<string, any>;
   } | null;
   loading: boolean;
   onBuyClick: () => void;
@@ -24,6 +159,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
             <div className="flex space-x-4">
               <div className="h-4 bg-gray-200 rounded w-24"></div>
               <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="h-6 bg-gray-200 rounded w-20"></div>
             </div>
             <div className="flex space-x-2">
               <div className="h-8 bg-gray-200 rounded w-20"></div>
@@ -94,6 +230,11 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
           </div>
         </div>
 
+        {/* Risk Badge - Mobile */}
+        <div className="flex justify-center">
+          <PortfolioRiskBadge holdings={summary.holdings || {}} />
+        </div>
+
         {/* Action Buttons - Mobile Full Width */}
         <div className="flex space-x-3">
           <button 
@@ -157,6 +298,9 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
               </div>
             </div>
           </div>
+
+          {/* Risk Badge - Desktop */}
+          <PortfolioRiskBadge holdings={summary.holdings || {}} />
         </div>
 
         {/* Right side - Quick Actions */}

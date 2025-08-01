@@ -45,6 +45,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
     totalUnrealizedPnl: summary.total_unrealized_pnl,
     totalUnrealizedPnlPercent: summary.total_unrealized_pnl_percent,
     holdingsCount: summary.holdings_count,
+    holdings: summary.holdings,
   } : null;
 
   if (error) {
