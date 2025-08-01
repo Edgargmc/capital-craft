@@ -34,10 +34,10 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchData();
-  }, [userId, fetchData]);
+  }, [userId]);
 
   const headerData = summary ? {
     cashBalance: summary.cash_balance,
