@@ -1,15 +1,23 @@
-const API_BASE = process.env.NODE_ENV === 'production' 
-  ? 'https://capital-craft-production.up.railway.app'
-  : 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://capital-craft-production.up.railway.app'
+    : 'http://localhost:8000');
 
-export interface Stock {
-  symbol: string;
-  name: string;
-  current_price: number;
-  sector: string;
-  market_cap: number | null;
-  pe_ratio: number | null;
-}
+  export interface Stock {
+    symbol: string;
+    name: string;
+    current_price: number;
+    sector: string;
+    market_cap: number | null;
+    pe_ratio: number | null;
+    // Educational fields nuevos:
+    eps?: number;
+    beta?: number;
+    dividend_yield?: number;
+    book_value?: number;
+    price_to_book?: number;
+    // ... etc (todos los campos que tienes en backend)
+  }
 
 export interface Holding {
   symbol: string;

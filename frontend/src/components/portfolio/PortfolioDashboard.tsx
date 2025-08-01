@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { PieChart } from 'lucide-react';
 import { CapitalCraftAPI, PortfolioSummary } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { HoldingCard } from './HoldingCard';
+import  HoldingCard  from './HoldingCard';
 import { BuyStockModal } from '@/components/modals/BuyStockModal';
 import { SellStockModal } from '@/components/modals/SellStockModal';
 
