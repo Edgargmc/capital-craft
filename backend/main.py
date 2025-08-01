@@ -44,18 +44,48 @@ def home():
 @app.get("/stock/{symbol}")
 def get_stock(symbol: str):
     try:
-        # Inject provider into use case
         use_case = GetStockDataUseCase(stock_data_provider)
         stock = use_case.execute(symbol)
         
         return {
+            # Core data
             "symbol": stock.symbol,
             "name": stock.name,
             "current_price": float(stock.current_price),
             "sector": stock.sector,
             "market_cap": stock.market_cap,
             "pe_ratio": float(stock.pe_ratio) if stock.pe_ratio else None,
-            "message": "Complete stock data with Clean Architecture!"
+            
+            # 🎯 Enhanced fundamental data
+            "eps": float(stock.eps) if stock.eps else None,
+            "book_value": float(stock.book_value) if stock.book_value else None,
+            "price_to_book": float(stock.price_to_book) if stock.price_to_book else None,
+            "profit_margin": float(stock.profit_margin) if stock.profit_margin else None,
+            
+            # 🎯 Dividend data
+            "dividend_yield": float(stock.dividend_yield) if stock.dividend_yield else None,
+            "dividend_per_share": float(stock.dividend_per_share) if stock.dividend_per_share else None,
+            "is_dividend_stock": stock.is_dividend_stock,
+            
+            # 🎯 Risk & technical
+            "week_52_high": float(stock.week_52_high) if stock.week_52_high else None,
+            "week_52_low": float(stock.week_52_low) if stock.week_52_low else None,
+            "beta": float(stock.beta) if stock.beta else None,
+            "current_vs_52week_range": float(stock.current_vs_52week_range) if stock.current_vs_52week_range else None,
+            
+            # 🎯 Growth metrics
+            "earnings_growth_yoy": float(stock.earnings_growth_yoy) if stock.earnings_growth_yoy else None,
+            "revenue_growth_yoy": float(stock.revenue_growth_yoy) if stock.revenue_growth_yoy else None,
+            
+            # 🎯 Analyst data
+            "analyst_target_price": float(stock.analyst_target_price) if stock.analyst_target_price else None,
+            "analyst_rating_buy": stock.analyst_rating_buy,
+            "analyst_rating_hold": stock.analyst_rating_hold,
+            "analyst_rating_sell": stock.analyst_rating_sell,
+            "analyst_sentiment": stock.analyst_sentiment,
+            "upside_potential": float(stock.upside_potential) if stock.upside_potential else None,
+            
+            "message": "Enhanced stock data with educational metrics!"
         }
     except ValueError as e:
         return {"error": str(e)}
