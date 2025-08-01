@@ -12,6 +12,12 @@ interface AppLayoutProps {
     totalUnrealizedPnl: number;
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
+    holdings: Record<string, {
+      symbol: string;
+      shares: number;
+      current_value: number;
+      beta?: number;
+    }>;
   } | null;
   headerLoading?: boolean;
   onBuyClick: () => void;
