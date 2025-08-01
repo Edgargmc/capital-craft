@@ -2,19 +2,25 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.entities.stock import Stock
 from decimal import Decimal
+from app.infrastructure.providers.provider_factory import ProviderFactory
+from app.use_cases.get_portfolio_summary import GetPortfolioSummary
 from app.use_cases.get_stock_data import GetStockDataUseCase
 from app.use_cases.create_portfolio import CreatePortfolio
 from app.use_cases.buy_stock import BuyStock 
 from pydantic import BaseModel
-from app.use_cases.get_portfolio_summary import GetPortfolioSummary
-from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
 import os 
+
+
+
 
 app = FastAPI(title="Capital Craft")
 
 # Agregar middleware CORS
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
+stock_data_provider = ProviderFactory.create_provider()
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,12 +32,18 @@ app.add_middleware(
 
 @app.get("/")
 def home():
-    return {"message": "Welcome to Capital Craft"}
+    provider_type = os.getenv("STOCK_DATA_PROVIDER", "mock")
+    return {
+        "message": "Welcome to Capital Craft",
+        "stock_data_provider": provider_type,
+        "status": "ready"
+    }
 
 @app.get("/stock/{symbol}")
 def get_stock(symbol: str):
     try:
-        use_case = GetStockDataUseCase()
+        # Inject provider into use case
+        use_case = GetStockDataUseCase(stock_data_provider)
         stock = use_case.execute(symbol)
         
         return {
@@ -94,7 +106,7 @@ def buy_stock(user_id: str, request: BuyStockRequest):
         current_portfolio = portfolios_db[user_id]
         
         # Execute buy
-        get_stock_data = GetStockDataUseCase()
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
         buy_stock_use_case = BuyStock(get_stock_data)
         updated_portfolio = buy_stock_use_case.execute(
             current_portfolio, 
@@ -139,7 +151,7 @@ def get_portfolio_summary(user_id: str):
         portfolio = portfolios_db[user_id]
         
         # Get summary
-        get_stock_data = GetStockDataUseCase()
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
         portfolio_summary_use_case = GetPortfolioSummary(get_stock_data)
         summary = portfolio_summary_use_case.execute(portfolio)
         
@@ -166,7 +178,7 @@ def sell_stock(user_id: str, request: SellStockRequest):
         current_portfolio = portfolios_db[user_id]
         
         # Execute sell
-        get_stock_data = GetStockDataUseCase()
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
         sell_stock_use_case = SellStock(get_stock_data)
         updated_portfolio = sell_stock_use_case.execute(
             current_portfolio, 
