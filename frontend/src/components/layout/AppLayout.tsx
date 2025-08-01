@@ -14,32 +14,37 @@ interface AppLayoutProps {
     holdingsCount: number;
   } | null;
   headerLoading?: boolean;
-  onBuyClick: () => void;  // <- NUEVO
-  onSellClick: () => void; // <- NUEVO
+  onBuyClick: () => void;
+  onSellClick: () => void;
 }
 
 export function AppLayout({ 
   children, 
   headerData, 
   headerLoading = false, 
-  onBuyClick,   // <- AGREGAR
-  onSellClick   // <- AGREGAR
+  onBuyClick,
+  onSellClick
 }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   return (
     <div className="h-screen flex bg-gray-50">
+      {/* Sidebar */}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header 
-          summary={headerData || null} 
-          loading={headerLoading}
-          onBuyClick={onBuyClick}
-          onSellClick={onSellClick}
-        />
+        {/* Header with mobile padding adjustment */}
+        <div className="pt-12 md:pt-0">
+          <Header 
+            summary={headerData || null} 
+            loading={headerLoading}
+            onBuyClick={onBuyClick}
+            onSellClick={onSellClick}
+          />
+        </div>
         
+        {/* Main Content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
