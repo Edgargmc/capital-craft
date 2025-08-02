@@ -38,7 +38,7 @@ export const LearningContentModal: React.FC<LearningContentModalProps> = ({
     if (isOpen && trigger) {
       fetchContent();
     }
-  }, [isOpen, trigger]);
+  }, [isOpen, trigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchContent = async () => {
     try {
@@ -201,7 +201,7 @@ export const LearningContentModal: React.FC<LearningContentModalProps> = ({
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
                   <div className="flex items-center mb-2">
                     <Target className="w-5 h-5 text-blue-600 mr-2" />
-                    <h3 className="font-semibold text-blue-900">What you'll learn:</h3>
+                    <h3 className="font-semibold text-blue-900">What you&apos;ll learn:</h3>
                   </div>
                   <ul className="space-y-1">
                     {content.learning_objectives.map((objective, index) => (
