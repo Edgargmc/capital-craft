@@ -10,6 +10,9 @@ from app.use_cases.buy_stock import BuyStock
 from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
 from app.use_cases.analyze_portfolio_risk import AnalyzePortfolioRisk
+from app.use_cases.get_learning_content import GetLearningContent, GetRecommendedContent
+from app.infrastructure.content.content_repository import ContentRepositoryFactory
+from app.core.entities.learning_content import LearningContent
 
 import os 
 from dotenv import load_dotenv
@@ -25,7 +28,10 @@ cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 stock_data_provider = ProviderFactory.create_provider()
 analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(stock_data_provider)
-
+# Initialize content repository and use cases
+content_repository = ContentRepositoryFactory.create_repository("markdown")
+get_learning_content_use_case = GetLearningContent(content_repository)
+get_recommended_content_use_case = GetRecommendedContent(content_repository)
 
 app.add_middleware(
     CORSMiddleware,
@@ -280,12 +286,242 @@ async def get_portfolio_risk_analysis(user_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
+
+@app.get("/learning/content/{trigger}")
+def get_learning_content_by_trigger(trigger: str):
+    """
+    Get learning content for a specific trigger
+    Baby step: Simple content retrieval
+    """
+    try:
+        content = get_learning_content_use_case.execute(trigger)
+        
+        if not content:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No learning content found for trigger: {trigger}"
+            )
+        
+        return {
+            "success": True,
+            "data": {
+                "id": content.id,
+                "title": content.title,
+                "content": content.content,  # Markdown content
+                "trigger_type": content.trigger_type,
+                "difficulty_level": content.difficulty_level,
+                "estimated_read_time": content.estimated_read_time,
+                "tags": content.tags,
+                "learning_objectives": content.learning_objectives,
+                "prerequisites": content.prerequisites,
+                "next_suggested": content.next_suggested,
+                "created_at": content.created_at.isoformat(),
+                "updated_at": content.updated_at.isoformat()
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error retrieving learning content: {str(e)}"
+        )
+
+@app.get("/learning/content")
+def list_all_learning_content():
+    """
+    Get all available learning content
+    Useful for content discovery
+    """
+    try:
+        content_list = get_learning_content_use_case.execute_list_all()
+        
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": content.id,
+                    "title": content.title,
+                    "trigger_type": content.trigger_type,
+                    "difficulty_level": content.difficulty_level,
+                    "estimated_read_time": content.estimated_read_time,
+                    "tags": content.tags,
+                    "learning_objectives": content.learning_objectives
+                }
+                for content in content_list
+            ],
+            "total_count": len(content_list)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error listing learning content: {str(e)}"
+        )
+
+@app.get("/learning/recommendations")
+def get_learning_recommendations(
+    user_level: str = "beginner", 
+    available_time: int = 10
+):
+    """
+    Get personalized learning content recommendations
+    Query params: user_level (beginner/intermediate/advanced), available_time (minutes)
+    """
+    try:
+        recommendations = get_recommended_content_use_case.execute(
+            user_level=user_level,
+            available_time=available_time
+        )
+        
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": content.id,
+                    "title": content.title,
+                    "trigger_type": content.trigger_type,
+                    "difficulty_level": content.difficulty_level,
+                    "estimated_read_time": content.estimated_read_time,
+                    "tags": content.tags,
+                    "learning_objectives": content.learning_objectives
+                }
+                for content in recommendations
+            ],
+            "filters": {
+                "user_level": user_level,
+                "available_time": available_time
+            },
+            "total_count": len(recommendations)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error getting recommendations: {str(e)}"
+        )
+
+@app.get("/learning/quick-reads")
+def get_quick_learning_content():
+    """
+    Get quick-read learning content (5 minutes or less)
+    Perfect for busy users
+    """
+    try:
+        quick_content = get_learning_content_use_case.execute_quick_reads()
+        
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": content.id,
+                    "title": content.title,
+                    "trigger_type": content.trigger_type,
+                    "estimated_read_time": content.estimated_read_time,
+                    "tags": content.tags,
+                    "learning_objectives": content.learning_objectives
+                }
+                for content in quick_content
+            ],
+            "max_read_time": 5,
+            "total_count": len(quick_content)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error getting quick reads: {str(e)}"
+        )
+
+# ✅ ENHANCED HEALTH CHECK - Update your existing health check
+@app.get("/health")
+def health_check():
+    """Enhanced health check with learning system status"""
+    try:
+        # Check if content repository is working
+        content_count = len(get_learning_content_use_case.execute_list_all())
+        
+        return {
+            "status": "healthy", 
+            "service": "capital-craft-backend",
+            "features": [
+                "portfolio_management", 
+                "risk_analysis", 
+                "learning_triggers",
+                "learning_content_system"  # NEW
+            ],
+            "provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
+            "learning_content_available": content_count,  # NEW
+            "timestamp": "2025-08-01"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "service": "capital-craft-backend", 
+            "error": f"Learning system issue: {str(e)}"
+        }
+
+# ✅ INTEGRATION WITH EXISTING RISK ANALYSIS - Enhance your existing endpoint
+@app.get("/portfolio/{user_id}/risk-analysis")
+async def get_portfolio_risk_analysis(user_id: str):
+    """
+    Enhanced: Portfolio risk analysis WITH learning content recommendations
+    """
+    try:
+        # Existing risk analysis logic
+        if user_id not in portfolios_db:
+            create_portfolio_use_case = CreatePortfolio()
+            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
+        
+        portfolio = portfolios_db[user_id]
+        risk_analysis = analyze_portfolio_risk_use_case.execute(portfolio)
+        
+        # ✅ NEW: Get recommended learning content based on trigger
+        recommended_content = None
+        if risk_analysis.learning_trigger:
+            recommended_content = get_learning_content_use_case.execute(
+                risk_analysis.learning_trigger
+            )
+        
+        response_data = {
+            "risk_level": risk_analysis.risk_level,
+            "volatility_score": risk_analysis.volatility_score,
+            "learning_trigger": risk_analysis.learning_trigger,
+            "risk_factors": risk_analysis.risk_factors,
+            "recommendation": risk_analysis.recommendation,
+            "timestamp": "2025-08-01"
+        }
+        
+        # ✅ NEW: Add learning content if available
+        if recommended_content:
+            response_data["recommended_content"] = {
+                "id": recommended_content.id,
+                "title": recommended_content.title,
+                "estimated_read_time": recommended_content.estimated_read_time,
+                "learning_objectives": recommended_content.learning_objectives
+            }
+        
+        return {
+            "success": True,
+            "data": response_data
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
+
+
+
+
 # ✅ BONUS: Health check with new feature
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy", 
         "service": "capital-craft-backend",
-        "features": ["portfolio_management", "risk_analysis", "learning_triggers"],
+        "features": ["portfolio_management", "risk_analysis", "learning_triggers", "Learning content"],
         "provider": os.getenv("STOCK_DATA_PROVIDER", "mock")
     }
+

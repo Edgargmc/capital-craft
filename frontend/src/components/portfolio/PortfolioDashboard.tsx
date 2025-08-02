@@ -9,6 +9,7 @@ import  HoldingCard  from './HoldingCard';
 import { BuyStockModal } from '@/components/modals/BuyStockModal';
 import { SellStockModal } from '@/components/modals/SellStockModal';
 import { LearningAlert } from '@/components/learning/LearningAlert';
+import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { RiskAnalysis } from '@/lib/api';
 
 
@@ -22,6 +23,8 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
+  const [showLearningModal, setShowLearningModal] = useState(false);
+
 
   
   // State para modals
@@ -95,20 +98,16 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
             <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
             <p className="text-gray-600">Here&apos;s how your portfolio is performing today.</p>
           </div>
-          {/* Learning Alert - Contextual triggers */}
           {riskAnalysis?.learning_trigger && (
-            <div className="mb-6">
-              <LearningAlert
-                trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
-                portfolioRisk={riskAnalysis.risk_level}
-                volatilityScore={riskAnalysis.volatility_score}
-                onDismiss={() => setRiskAnalysis(null)}
-                onLearnMore={() => {
-                  console.log('Navigate to learning module:', riskAnalysis.learning_trigger);
-                  // TODO: Navigate to learn section
-                }}
-              />
-            </div>
+              <div className="mb-6">
+                <LearningAlert
+                  trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
+                  portfolioRisk={riskAnalysis.risk_level}
+                  volatilityScore={riskAnalysis.volatility_score}
+                  onDismiss={() => setRiskAnalysis(null)}
+                  onLearnMore={() => setShowLearningModal(true)} 
+                />
+              </div>
           )}
           {/* Holdings Section */}
           {loading ? (
@@ -183,6 +182,13 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
         onSuccess={fetchData}
         userId={userId}
         holdings={summary?.holdings || {}}
+      />
+
+      <LearningContentModal 
+        isOpen={showLearningModal}
+        onClose={() => setShowLearningModal(false)}
+        trigger={riskAnalysis?.learning_trigger || ''}
+        userId={userId} 
       />
     </>
   );

@@ -55,6 +55,21 @@ export interface PortfolioSummary {
   created_at: string;
 }
 
+export interface LearningContent {
+  id: string;
+  title: string;
+  content: string;
+  trigger_type: string;
+  difficulty_level: string;
+  estimated_read_time: number;
+  tags: string[];
+  learning_objectives: string[];
+  prerequisites: string[];
+  next_suggested: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RiskAnalysis {
   risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
   volatility_score: number;
@@ -126,5 +141,15 @@ export class CapitalCraftAPI {
     const result = await response.json();
     return result.data; // Backend devuelve { success: true, data: {...} }
   }
+
+  // Agregar método en CapitalCraftAPI class
+static async getLearningContent(trigger: string): Promise<LearningContent> {
+  const response = await fetch(`${API_BASE}/learning/content/${trigger}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch learning content');
+  }
+  const result = await response.json();
+  return result.data;
+}
 }
 

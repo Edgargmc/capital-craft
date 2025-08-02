@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, BookOpen, X, AlertTriangle } from 'lucide-react';
 
+
 interface LearningAlertProps {
   trigger: 'volatility_basics' | 'market_psychology' | 'diversification';
   portfolioRisk: 'LOW' | 'MEDIUM' | 'HIGH';
@@ -18,6 +19,7 @@ export const LearningAlert: React.FC<LearningAlertProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+
 
   useEffect(() => {
     // Pequeña animación de entrada
