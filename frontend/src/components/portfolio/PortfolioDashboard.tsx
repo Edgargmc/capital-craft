@@ -47,7 +47,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
   
   useEffect(() => {
     fetchData();
-  }, [userId]);
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const headerData = summary ? {
     cashBalance: summary.cash_balance,
@@ -99,7 +99,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
           {riskAnalysis?.learning_trigger && (
             <div className="mb-6">
               <LearningAlert
-                trigger={riskAnalysis.learning_trigger as any}
+                trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
                 portfolioRisk={riskAnalysis.risk_level}
                 volatilityScore={riskAnalysis.volatility_score}
                 onDismiss={() => setRiskAnalysis(null)}

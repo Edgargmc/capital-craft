@@ -29,7 +29,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
           const data = await CapitalCraftAPI.getStock(symbol.toUpperCase());
           setStockData(data);
           setError('');
-        } catch (_err) {
+        } catch {
           setStockData(null);
           if (symbol.length >= 2) {
             setError('Stock not found');
