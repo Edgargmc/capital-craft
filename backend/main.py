@@ -9,6 +9,8 @@ from app.use_cases.create_portfolio import CreatePortfolio
 from app.use_cases.buy_stock import BuyStock 
 from pydantic import BaseModel
 from app.use_cases.sell_stock import SellStock
+from app.use_cases.analyze_portfolio_risk import AnalyzePortfolioRisk
+
 import os 
 from dotenv import load_dotenv
 
@@ -22,6 +24,7 @@ app = FastAPI(title="Capital Craft")
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 stock_data_provider = ProviderFactory.create_provider()
+analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(stock_data_provider)
 
 
 app.add_middleware(
@@ -244,4 +247,45 @@ def sell_stock(user_id: str, request: SellStockRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+@app.get("/portfolio/{user_id}/risk-analysis")
+async def get_portfolio_risk_analysis(user_id: str):
+    """
+    Get portfolio risk analysis with contextual learning triggers
+    Baby step: Analyze volatility and provide learning recommendations
+    """
+    try:
+        # Get or create portfolio (same pattern as your other endpoints)
+        if user_id not in portfolios_db:
+            create_portfolio_use_case = CreatePortfolio()
+            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
+        
+        portfolio = portfolios_db[user_id]
+        
+        # ✅ NEW: Analyze portfolio risk using our use case
+        risk_analysis = analyze_portfolio_risk_use_case.execute(portfolio)
+        
+        return {
+            "success": True,
+            "data": {
+                "risk_level": risk_analysis.risk_level,
+                "volatility_score": risk_analysis.volatility_score,
+                "learning_trigger": risk_analysis.learning_trigger,
+                "risk_factors": risk_analysis.risk_factors,
+                "recommendation": risk_analysis.recommendation,
+                "timestamp": "2025-08-01"  # For frontend caching
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
+# ✅ BONUS: Health check with new feature
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy", 
+        "service": "capital-craft-backend",
+        "features": ["portfolio_management", "risk_analysis", "learning_triggers"],
+        "provider": os.getenv("STOCK_DATA_PROVIDER", "mock")
+    }

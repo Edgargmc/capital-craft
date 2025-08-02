@@ -55,6 +55,14 @@ export interface PortfolioSummary {
   created_at: string;
 }
 
+export interface RiskAnalysis {
+  risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
+  volatility_score: number;
+  learning_trigger: string | null;
+  risk_factors: string[];
+  recommendation: string;
+}
+
 export class CapitalCraftAPI {
   static async getPortfolio(userId: string): Promise<Portfolio> {
     const response = await fetch(`${API_BASE}/portfolio/${userId}`);
@@ -109,4 +117,14 @@ export class CapitalCraftAPI {
     }
     return response.json();
   }
+
+  static async getRiskAnalysis(userId: string): Promise<RiskAnalysis> {
+    const response = await fetch(`${API_BASE}/portfolio/${userId}/risk-analysis`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch risk analysis');
+    }
+    const result = await response.json();
+    return result.data; // Backend devuelve { success: true, data: {...} }
+  }
 }
+

@@ -299,7 +299,7 @@ const HoldingCard: React.FC<HoldingCardProps> = ({
       <div className="flex justify-between items-center mb-4 p-3 bg-gray-50 rounded-lg">
         <div>
           <div className="text-sm text-gray-600">Total Value</div>
-          <div className="font-bold text-lg">${currentValue.toFixed(2)}</div>
+          <div className="font-bold text-lg text-gray-700">${currentValue.toFixed(2)}</div>
         </div>
         <div className="text-right">
           <div className={`font-bold text-lg ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
