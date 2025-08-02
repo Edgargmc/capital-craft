@@ -173,7 +173,7 @@ export const LearningContentModal: React.FC<LearningContentModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(85vh - 180px)' }} >
 
           {loading && (
             <div className="flex items-center justify-center p-12">
@@ -255,7 +255,7 @@ export const LearningContentModal: React.FC<LearningContentModalProps> = ({
 
         {/* Footer */}
        {content && !loading && (
-        <div className="border-t border-gray-200 p-4 bg-gray-50 flex-shrink-0">
+        <div className="border-t border-gray-200 p-4 bg-gray-50 flex-shrink-0 sticky bottom-0">
             <div className="flex justify-between items-center flex-wrap gap-3">
             <div className="text-sm text-gray-500">
                 Continue learning to improve your investment skills
