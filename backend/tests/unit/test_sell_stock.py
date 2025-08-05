@@ -1,3 +1,8 @@
+"""
+📁 FILE: tests/unit/test_sell_stock.py
+
+Fixed version - replace entire file content
+"""
 import pytest
 from decimal import Decimal
 from datetime import datetime
@@ -36,7 +41,8 @@ class TestSellStockUseCase:
         )
         
         # Sell 5 shares at $200
-        updated_portfolio = sell_stock_use_case.execute(portfolio, "AAPL", 5)
+        # ✅ FIX: Use execute_sync instead of execute
+        updated_portfolio = sell_stock_use_case.execute_sync(portfolio, "AAPL", 5)
         
         # Assertions
         assert updated_portfolio.cash_balance == Decimal("9500.00")  # 8500 + (200 * 5)
@@ -72,7 +78,8 @@ class TestSellStockUseCase:
         )
         
         # Sell all 10 shares
-        updated_portfolio = sell_stock_use_case.execute(portfolio, "AAPL", 10)
+        # ✅ FIX: Use execute_sync instead of execute
+        updated_portfolio = sell_stock_use_case.execute_sync(portfolio, "AAPL", 10)
         
         # Assertions
         assert updated_portfolio.cash_balance == Decimal("10500.00")  # 8500 + (200 * 10)
@@ -98,7 +105,8 @@ class TestSellStockUseCase:
         )
         
         with pytest.raises(ValueError, match="Insufficient shares"):
-            sell_stock_use_case.execute(portfolio, "AAPL", 10)  # Try to sell 10
+            # ✅ FIX: Use execute_sync instead of execute
+            sell_stock_use_case.execute_sync(portfolio, "AAPL", 10)  # Try to sell 10
 
     def test_sell_nonexistent_holding_fails(self):
         """Test selling stock not in portfolio"""
@@ -113,7 +121,8 @@ class TestSellStockUseCase:
         )
         
         with pytest.raises(ValueError, match="No holdings found for AAPL"):
-            sell_stock_use_case.execute(portfolio, "AAPL", 5)
+            # ✅ FIX: Use execute_sync instead of execute
+            sell_stock_use_case.execute_sync(portfolio, "AAPL", 5)
 
     def test_sell_negative_shares_fails(self):
         """Test selling negative shares"""
@@ -128,7 +137,8 @@ class TestSellStockUseCase:
         )
         
         with pytest.raises(ValueError, match="Shares must be positive"):
-            sell_stock_use_case.execute(portfolio, "AAPL", -5)
+            # ✅ FIX: Use execute_sync instead of execute
+            sell_stock_use_case.execute_sync(portfolio, "AAPL", -5)
 
     def test_sell_with_price_fetch_error(self):
         """Test selling when can't get current price"""
@@ -151,4 +161,5 @@ class TestSellStockUseCase:
         )
         
         with pytest.raises(ValueError, match="Could not get current price"):
-            sell_stock_use_case.execute(portfolio, "UNKNOWN", 5)
+            # ✅ FIX: Use execute_sync instead of execute
+            sell_stock_use_case.execute_sync(portfolio, "UNKNOWN", 5)

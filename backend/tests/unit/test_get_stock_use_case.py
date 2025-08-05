@@ -1,48 +1,54 @@
+"""
+📁 FILE: tests/unit/test_get_stock_use_case.py
+
+Fixed test with proper dependency injection
+"""
 import pytest
-from unittest.mock import Mock, patch
-from decimal import Decimal
+from unittest.mock import Mock
+
 from app.use_cases.get_stock_data import GetStockDataUseCase
+from app.core.entities.stock import Stock
+from app.core.interfaces.stock_data_provider import StockDataProvider
+
 
 def test_get_stock_data_success():
-    # Arrange
-    use_case = GetStockDataUseCase()
+    """Test successful stock data retrieval"""
+    # Create mock provider
+    mock_provider = Mock(spec=StockDataProvider)
     
-    # Mock yfinance de forma más simple
-    mock_ticker = Mock()
-    mock_hist = Mock()
-    mock_hist.empty = False
+    # Setup mock return value
+    expected_stock = Stock(
+        symbol="AAPL",
+        name="Apple Inc.",
+        current_price=150.0,
+        sector="Technology"
+    )
+    mock_provider.get_stock_data.return_value = expected_stock
     
-    # Configurar el mock para iloc[-1]
-    mock_close = Mock()
-    mock_close.iloc = Mock()
-    mock_close.iloc.__getitem__ = Mock(return_value=150.00)
-    mock_hist.__getitem__ = Mock(return_value=mock_close)
+    # Create use case with injected provider - FIX HERE
+    use_case = GetStockDataUseCase(stock_data_provider=mock_provider)
     
-    mock_ticker.history.return_value = mock_hist
-    mock_ticker.info = {
-        'longName': 'Apple Inc.',
-        'sector': 'Technology'
-    }
+    # Execute
+    result = use_case.execute("AAPL")
     
-    # Act & Assert
-    with patch('yfinance.Ticker', return_value=mock_ticker):
-        stock = use_case.execute("AAPL")
-        
-        assert stock.symbol == "AAPL"
-        assert stock.name == "Apple Inc."
-        assert stock.sector == "Technology"
+    # Verify
+    assert result == expected_stock
+    mock_provider.get_stock_data.assert_called_once_with("AAPL")
+
 
 def test_get_stock_data_not_found():
-    # Arrange
-    use_case = GetStockDataUseCase()
+    """Test stock not found scenario"""
+    # Create mock provider
+    mock_provider = Mock(spec=StockDataProvider)
     
-    # Mock empty response
-    mock_ticker = Mock()
-    mock_hist = Mock()
-    mock_hist.empty = True
-    mock_ticker.history.return_value = mock_hist
+    # Setup mock to raise exception
+    mock_provider.get_stock_data.side_effect = ValueError("Stock not found")
     
-    # Act & Assert
-    with patch('yfinance.Ticker', return_value=mock_ticker):
-        with pytest.raises(ValueError):
-            use_case.execute("INVALID")
+    # Create use case with injected provider - FIX HERE
+    use_case = GetStockDataUseCase(stock_data_provider=mock_provider)
+    
+    # Execute and verify exception
+    with pytest.raises(ValueError, match="Stock not found"):
+        use_case.execute("INVALID")
+    
+    mock_provider.get_stock_data.assert_called_once_with("INVALID")

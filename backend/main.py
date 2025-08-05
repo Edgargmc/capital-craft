@@ -14,6 +14,10 @@ from app.use_cases.get_learning_content import GetLearningContent, GetRecommende
 from app.infrastructure.content.content_repository import ContentRepositoryFactory
 from app.core.entities.learning_content import LearningContent
 
+# ADD these imports at the top (after your existing imports)
+from app.use_cases.generate_notification import GenerateNotificationUseCase
+from app.infrastructure.providers.mock_notification_repository import MockNotificationRepository
+
 import os 
 from dotenv import load_dotenv
 
@@ -27,8 +31,16 @@ app = FastAPI(title="Capital Craft")
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 stock_data_provider = ProviderFactory.create_provider()
-analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(stock_data_provider)
-# Initialize content repository and use cases
+# TO:
+# Initialize notification system
+notification_repository = MockNotificationRepository()
+notification_service = GenerateNotificationUseCase(notification_repository)
+
+# Enhanced portfolio risk analysis with notifications
+analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(
+    stock_data_provider, 
+    notification_service
+)# Initialize content repository and use cases
 content_repository = ContentRepositoryFactory.create_repository("markdown")
 get_learning_content_use_case = GetLearningContent(content_repository)
 get_recommended_content_use_case = GetRecommendedContent(content_repository)
@@ -136,7 +148,57 @@ def get_portfolio(user_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/portfolio/{user_id}/buy")
-def buy_stock(user_id: str, request: BuyStockRequest):
+async def buy_stock(user_id: str, request: BuyStockRequest):
+    """Enhanced: Buy stocks with optional educational notifications"""
+    try:
+        # Get or create portfolio
+        if user_id not in portfolios_db:
+            create_portfolio_use_case = CreatePortfolio()
+            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
+        
+        current_portfolio = portfolios_db[user_id]
+        
+        # ✅ ENHANCED: Execute buy with notifications
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
+        buy_stock_use_case = BuyStock(get_stock_data, notification_service)  # Added notification_service
+        
+        # Use async execute method
+        updated_portfolio = await buy_stock_use_case.execute(
+            current_portfolio, 
+            request.symbol, 
+            request.shares,
+            user_id  # Added user_id for notifications
+        )
+        
+        # Save updated portfolio
+        portfolios_db[user_id] = updated_portfolio
+        
+        return {
+            "user_id": updated_portfolio.user_id,
+            "cash_balance": float(updated_portfolio.cash_balance),
+            "holdings": {
+                symbol: {
+                    "symbol": holding.symbol,
+                    "shares": holding.shares,
+                    "average_price": float(holding.average_price)
+                }
+                for symbol, holding in updated_portfolio.holdings.items()
+            },
+            "total_holdings": len(updated_portfolio.holdings),
+            "transaction": {
+                "action": "buy",
+                "symbol": request.symbol.upper(),
+                "shares": request.shares
+            },
+            "educational_notifications_triggered": True  # NEW
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+    
+
     """Buy stocks for user portfolio"""
     try:
         # Get or create portfolio
@@ -208,9 +270,10 @@ class SellStockRequest(BaseModel):
     shares: int
 
 
+# UPDATE: Enhanced sell endpoint (make it async for notifications)  
 @app.post("/portfolio/{user_id}/sell")
-def sell_stock(user_id: str, request: SellStockRequest):
-    """Sell stocks from user portfolio"""
+async def sell_stock(user_id: str, request: SellStockRequest):
+    """Enhanced: Sell stocks with optional educational notifications"""
     try:
         # Get portfolio (must exist to sell)
         if user_id not in portfolios_db:
@@ -218,13 +281,16 @@ def sell_stock(user_id: str, request: SellStockRequest):
         
         current_portfolio = portfolios_db[user_id]
         
-        # Execute sell
+        # ✅ ENHANCED: Execute sell with notifications
         get_stock_data = GetStockDataUseCase(stock_data_provider)
-        sell_stock_use_case = SellStock(get_stock_data)
-        updated_portfolio = sell_stock_use_case.execute(
+        sell_stock_use_case = SellStock(get_stock_data, notification_service)  # Added notification_service
+        
+        # Use async execute method
+        updated_portfolio = await sell_stock_use_case.execute(
             current_portfolio, 
             request.symbol, 
-            request.shares
+            request.shares,
+            user_id  # Added user_id for notifications
         )
         
         # Save updated portfolio
@@ -246,46 +312,14 @@ def sell_stock(user_id: str, request: SellStockRequest):
                 "action": "sell",
                 "symbol": request.symbol.upper(),
                 "shares": request.shares
-            }
+            },
+            "educational_notifications_triggered": True  # NEW
         }
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
-@app.get("/portfolio/{user_id}/risk-analysis")
-async def get_portfolio_risk_analysis(user_id: str):
-    """
-    Get portfolio risk analysis with contextual learning triggers
-    Baby step: Analyze volatility and provide learning recommendations
-    """
-    try:
-        # Get or create portfolio (same pattern as your other endpoints)
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        portfolio = portfolios_db[user_id]
-        
-        # ✅ NEW: Analyze portfolio risk using our use case
-        risk_analysis = analyze_portfolio_risk_use_case.execute(portfolio)
-        
-        return {
-            "success": True,
-            "data": {
-                "risk_level": risk_analysis.risk_level,
-                "volatility_score": risk_analysis.volatility_score,
-                "learning_trigger": risk_analysis.learning_trigger,
-                "risk_factors": risk_analysis.risk_factors,
-                "recommendation": risk_analysis.recommendation,
-                "timestamp": "2025-08-01"  # For frontend caching
-            }
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
-
 
 @app.get("/learning/content/{trigger}")
 def get_learning_content_by_trigger(trigger: str):
@@ -434,50 +468,24 @@ def get_quick_learning_content():
             detail=f"Error getting quick reads: {str(e)}"
         )
 
-# ✅ ENHANCED HEALTH CHECK - Update your existing health check
-@app.get("/health")
-def health_check():
-    """Enhanced health check with learning system status"""
-    try:
-        # Check if content repository is working
-        content_count = len(get_learning_content_use_case.execute_list_all())
-        
-        return {
-            "status": "healthy", 
-            "service": "capital-craft-backend",
-            "features": [
-                "portfolio_management", 
-                "risk_analysis", 
-                "learning_triggers",
-                "learning_content_system"  # NEW
-            ],
-            "provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
-            "learning_content_available": content_count,  # NEW
-            "timestamp": "2025-08-01"
-        }
-    except Exception as e:
-        return {
-            "status": "degraded",
-            "service": "capital-craft-backend", 
-            "error": f"Learning system issue: {str(e)}"
-        }
-
-# ✅ INTEGRATION WITH EXISTING RISK ANALYSIS - Enhance your existing endpoint
+# KEEP ONLY ONE: Portfolio risk analysis endpoint (the working one)
 @app.get("/portfolio/{user_id}/risk-analysis")
 async def get_portfolio_risk_analysis(user_id: str):
     """
-    Enhanced: Portfolio risk analysis WITH learning content recommendations
+    Enhanced: Portfolio risk analysis WITH automatic notifications
     """
     try:
-        # Existing risk analysis logic
+        # Get or create portfolio
         if user_id not in portfolios_db:
             create_portfolio_use_case = CreatePortfolio()
             portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
         
         portfolio = portfolios_db[user_id]
-        risk_analysis = analyze_portfolio_risk_use_case.execute(portfolio)
         
-        # ✅ NEW: Get recommended learning content based on trigger
+        # Use async version with notification generation
+        risk_analysis = await analyze_portfolio_risk_use_case.execute(portfolio, user_id)
+        
+        # Get recommended learning content based on trigger
         recommended_content = None
         if risk_analysis.learning_trigger:
             recommended_content = get_learning_content_use_case.execute(
@@ -490,10 +498,11 @@ async def get_portfolio_risk_analysis(user_id: str):
             "learning_trigger": risk_analysis.learning_trigger,
             "risk_factors": risk_analysis.risk_factors,
             "recommendation": risk_analysis.recommendation,
+            "notifications_generated": risk_analysis.notifications_generated,
             "timestamp": "2025-08-01"
         }
         
-        # ✅ NEW: Add learning content if available
+        # Add learning content if available
         if recommended_content:
             response_data["recommended_content"] = {
                 "id": recommended_content.id,
@@ -513,15 +522,115 @@ async def get_portfolio_risk_analysis(user_id: str):
         raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
 
+# ADD new endpoint for user notifications
+@app.get("/users/{user_id}/notifications")
+async def get_user_notifications(user_id: str, limit: int = 10):
+    """
+    Get user's notification history
+    Baby step: Simple notification retrieval
+    """
+    try:
+        notifications = await notification_repository.get_user_notifications(
+            user_id, limit=limit
+        )
+        
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": notification.id,
+                    "title": notification.title,
+                    "message": notification.message,
+                    "deep_link": notification.deep_link,
+                    "trigger_type": notification.trigger_type.value,
+                    "status": notification.status.value,
+                    "created_at": notification.created_at.isoformat(),
+                    "sent_at": notification.sent_at.isoformat() if notification.sent_at else None
+                }
+                for notification in notifications
+            ],
+            "total_count": len(notifications),
+            "user_id": user_id
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error retrieving notifications: {str(e)}"
+        )
 
+# ADD new endpoint for manual notification sending (for testing)
+@app.post("/users/{user_id}/notifications/test")
+async def send_test_notification(user_id: str):
+    """
+    Send test notification (for development/testing)
+    Baby step: Manual trigger for testing notifications
+    """
+    try:
+        from app.core.entities.notification import NotificationTriggerType
+        
+        # Generate test notification
+        test_notification = await notification_service.execute(
+            user_id=user_id,
+            trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
+            trigger_data={
+                "topic": "Investment Testing",
+                "topic_description": "testing the notification system",
+                "relevance_score": 1.0,
+                "content_slug": "volatility_basics"
+            }
+        )
+        
+        if test_notification:
+            return {
+                "success": True,
+                "message": "Test notification generated successfully",
+                "notification": {
+                    "id": test_notification.id,
+                    "title": test_notification.title,
+                    "message": test_notification.message
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Failed to generate test notification"
+            }
+            
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error sending test notification: {str(e)}"
+        )
 
-# ✅ BONUS: Health check with new feature
+# KEEP ONLY ONE: Health check endpoint
 @app.get("/health")
 def health_check():
-    return {
-        "status": "healthy", 
-        "service": "capital-craft-backend",
-        "features": ["portfolio_management", "risk_analysis", "learning_triggers", "Learning content"],
-        "provider": os.getenv("STOCK_DATA_PROVIDER", "mock")
-    }
-
+    """Enhanced health check with notification system status"""
+    try:
+        # Check if content repository is working
+        content_count = len(get_learning_content_use_case.execute_list_all())
+        
+        # Check notification system
+        notification_system_healthy = notification_repository is not None
+        
+        return {
+            "status": "healthy", 
+            "service": "capital-craft-backend",
+            "features": [
+                "portfolio_management", 
+                "risk_analysis", 
+                "learning_triggers",
+                "learning_content_system",
+                "notification_system"
+            ],
+            "provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
+            "learning_content_available": content_count,
+            "notification_system": "active" if notification_system_healthy else "inactive",
+            "timestamp": "2025-08-01"
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "service": "capital-craft-backend", 
+            "error": f"System issue: {str(e)}"
+        }

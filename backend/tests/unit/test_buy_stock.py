@@ -1,3 +1,8 @@
+"""
+📁 FILE: tests/unit/test_buy_stock.py
+
+Fixed version - replace entire file content
+"""
 import pytest
 from decimal import Decimal
 from datetime import datetime
@@ -30,8 +35,8 @@ class TestBuyStockUseCase:
             created_at=datetime.now()
         )
         
-        # Execute buy
-        updated_portfolio = buy_stock_use_case.execute(portfolio, "AAPL", 10)
+        # ✅ FIX: Use execute_sync instead of execute
+        updated_portfolio = buy_stock_use_case.execute_sync(portfolio, "AAPL", 10)
         
         # Assertions
         assert updated_portfolio.cash_balance == Decimal("8500.00")  # 10000 - (150 * 10)
@@ -60,7 +65,8 @@ class TestBuyStockUseCase:
         )
         
         with pytest.raises(ValueError, match="Insufficient funds"):
-            buy_stock_use_case.execute(portfolio, "AAPL", 10)  # Need $1500
+            # ✅ FIX: Use execute_sync instead of execute
+            buy_stock_use_case.execute_sync(portfolio, "AAPL", 10)  # Need $1500
 
     def test_buy_stock_negative_shares(self):
         mock_get_stock_data = Mock()
@@ -74,7 +80,8 @@ class TestBuyStockUseCase:
         )
         
         with pytest.raises(ValueError, match="Shares must be positive"):
-            buy_stock_use_case.execute(portfolio, "AAPL", -5)
+            # ✅ FIX: Use execute_sync instead of execute
+            buy_stock_use_case.execute_sync(portfolio, "AAPL", -5)
 
     def test_buy_existing_holding_averages_price(self):
         mock_get_stock_data = Mock()
@@ -104,7 +111,8 @@ class TestBuyStockUseCase:
         )
         
         # Buy 5 more shares at $160
-        updated_portfolio = buy_stock_use_case.execute(portfolio, "AAPL", 5)
+        # ✅ FIX: Use execute_sync instead of execute
+        updated_portfolio = buy_stock_use_case.execute_sync(portfolio, "AAPL", 5)
         
         # Should average: (5*$150 + 5*$160) / 10 = $155
         assert updated_portfolio.holdings["AAPL"].shares == 10
