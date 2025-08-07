@@ -68,6 +68,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
         headerLoading={false}
         onBuyClick={() => setShowBuyModal(true)}
         onSellClick={() => setShowSellModal(true)}
+        userId={userId} 
       >
         <div className="flex items-center justify-center h-full">
           <div className="text-center">

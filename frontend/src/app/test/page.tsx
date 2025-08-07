@@ -1,5 +1,9 @@
+'use client'; 
+
 import React from 'react';
 import { Shield, Scale, Flame } from 'lucide-react';
+import { useNotificationStore } from '@/lib/stores';
+
 
 // Portfolio Risk Calculator (copy from your component)
 interface Holding {
@@ -214,6 +218,8 @@ export default function TestPage() {
             <li>• Loading States & Error Handling</li>
           </ul>
         </section>
+        {/* NUEVA SECCIÓN - Zustand Store Test */}
+        <ZustandStoreTest />
 
         {/* Risk Level Guide */}
         <section className="mt-8 bg-gray-100 rounded-lg p-6">
@@ -246,3 +252,87 @@ export default function TestPage() {
     </div>
   );
 }
+
+// Añadir este componente DENTRO de tu TestPage existente
+const ZustandStoreTest: React.FC = () => {
+  const { notifications, isLoading, error, fetchNotifications, clearError } = useNotificationStore();
+  
+  const handleTest = () => {
+    console.log('Testing Zustand store...');
+    console.log('notifications:', notifications);
+    console.log('isLoading:', isLoading);
+    console.log('error:', error);
+    
+    // Test action call
+    fetchNotifications('test-user-123');
+  };
+
+  return (
+    <section className="mb-12">
+      <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        🗄️ Zustand Store Testing
+      </h2>
+      
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">
+              Notification Store Status
+            </h3>
+            <p className="text-sm text-gray-600">
+              Testing basic store functionality
+            </p>
+          </div>
+          <button 
+            onClick={handleTest}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            Test Store
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-600 mb-1">Loading State</div>
+            <div className={`text-lg font-bold ${isLoading ? 'text-blue-600' : 'text-gray-400'}`}>
+              {isLoading ? '⏳ Loading' : '✅ Ready'}
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-600 mb-1">Error State</div>
+            <div className={`text-lg font-bold ${error ? 'text-red-600' : 'text-gray-400'}`}>
+              {error ? '❌ Error' : '✅ No Errors'}
+            </div>
+            {error && (
+              <button 
+                onClick={clearError}
+                className="text-xs text-red-500 hover:text-red-700 mt-1"
+              >
+                Clear Error
+              </button>
+            )}
+          </div>
+          
+          <div className="text-center">
+            <div className="text-sm font-medium text-gray-600 mb-1">Notifications</div>
+            <div className="text-lg font-bold text-gray-600">
+            {notifications === null ? '🔄 Not Loaded' : `📝 ${notifications?.length || 0} items`}
+            </div>
+          </div>
+        </div>
+
+        {/* Console Log Instructions */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+          <strong>💡 Testing Instructions:</strong>
+          <ol className="mt-1 ml-4 list-decimal space-y-1">
+            <li>Click "Test Store" button</li>
+            <li>Open browser console (F12)</li>
+            <li>Look for "Testing Zustand store..." logs</li>
+            <li>Verify "fetchNotifications called with userId: test-user-123"</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  );
+};

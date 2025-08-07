@@ -22,6 +22,7 @@ interface AppLayoutProps {
   headerLoading?: boolean;
   onBuyClick: () => void;
   onSellClick: () => void;
+  userId?: string; 
 }
 
 export function AppLayout({ 
@@ -29,7 +30,8 @@ export function AppLayout({
   headerData, 
   headerLoading = false, 
   onBuyClick,
-  onSellClick
+  onSellClick,
+  userId
 }: AppLayoutProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -47,6 +49,7 @@ export function AppLayout({
             loading={headerLoading}
             onBuyClick={onBuyClick}
             onSellClick={onSellClick}
+            userId={userId}
           />
         </div>
         

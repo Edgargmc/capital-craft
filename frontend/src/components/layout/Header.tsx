@@ -1,7 +1,10 @@
+// src/components/layout/Header.tsx
 'use client';
 
-import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame } from 'lucide-react';
-import React from 'react';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
+import { NotificationDropdown } from './NotificationDropdown';
 
 // Portfolio Risk Calculator (from previous component)
 interface Holding {
@@ -135,6 +138,67 @@ const PortfolioRiskBadge: React.FC<PortfolioRiskBadgeProps> = ({ holdings }) => 
   );
 };
 
+// NotificationBell Component (inline for now, can be extracted later)
+interface NotificationBellProps {
+  userId: string;
+  onClick: () => void;
+}
+
+const NotificationBell: React.FC<NotificationBellProps> = ({ userId, onClick }) => {
+  const { 
+    notifications, 
+    isLoading, 
+    fetchNotifications
+  } = useNotificationStore();
+
+  useEffect(() => {
+    if (userId) {
+      // Initial fetch
+      fetchNotifications(userId);
+
+      // Poll every 30 seconds
+      const interval = setInterval(() => {
+        fetchNotifications(userId);
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [userId, fetchNotifications]);
+
+  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors group"
+      aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+    >
+      <Bell className={`h-5 w-5 transition-colors ${
+        unreadCount > 0 
+          ? 'text-gray-700 group-hover:text-gray-900' 
+          : 'text-gray-500 group-hover:text-gray-700'
+      }`} />
+      
+      {unreadCount > 0 && (
+        <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
+          <span className="text-white text-xs font-bold">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        </span>
+      )}
+
+      {isLoading && (
+        <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+          <span className="flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+          </span>
+        </span>
+      )}
+    </button>
+  );
+};
+
 // Updated Header Props
 interface HeaderProps {
   summary: {
@@ -144,14 +208,16 @@ interface HeaderProps {
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
     holdings: Record<string, { symbol: string; shares: number; current_value: number; beta?: number }>;
-
   } | null;
   loading: boolean;
   onBuyClick: () => void;
   onSellClick: () => void;
+  userId?: string; // NEW: Added userId prop
 }
 
-export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProps) {
+export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'demo' }: HeaderProps) {
+  const [showNotifications, setShowNotifications] = useState(false);
+
   if (loading || !summary) {
     return (
       <div className="bg-white border-b border-gray-200 px-4 py-4">
@@ -231,9 +297,21 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
           </div>
         </div>
 
-        {/* Risk Badge - Mobile */}
-        <div className="flex justify-center">
+        {/* Risk Badge and Notifications - Mobile */}
+        <div className="flex justify-between items-center">
           <PortfolioRiskBadge holdings={summary.holdings || {}} />
+          <div className="relative">
+            <NotificationBell 
+              userId={userId}
+              onClick={() => setShowNotifications(!showNotifications)}
+            />
+            {showNotifications && (
+              <NotificationDropdown 
+                onClose={() => setShowNotifications(false)}
+                userId={userId}
+              />
+            )}
+          </div>
         </div>
 
         {/* Action Buttons - Mobile Full Width */}
@@ -304,8 +382,10 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
           <PortfolioRiskBadge holdings={summary.holdings || {}} />
         </div>
 
-        {/* Right side - Quick Actions */}
+        {/* Right side - Quick Actions + Notifications */}
         <div className="flex items-center space-x-3">
+          {/* Notification Bell - Desktop */}
+
           <div className="text-right">
             <p className="text-sm text-gray-500">Holdings</p>
             <p className="text-lg font-semibold text-gray-900">{summary.holdingsCount}</p>
@@ -325,6 +405,19 @@ export function Header({ summary, loading, onBuyClick, onSellClick }: HeaderProp
               Sell Stock
             </button>
           </div>
+          <div className="relative">
+            <NotificationBell 
+              userId={userId}
+              onClick={() => setShowNotifications(!showNotifications)}
+            />
+            {showNotifications && (
+              <NotificationDropdown 
+                onClose={() => setShowNotifications(false)}
+                userId={userId}
+              />
+            )}
+          </div>
+
         </div>
       </div>
     </div>
