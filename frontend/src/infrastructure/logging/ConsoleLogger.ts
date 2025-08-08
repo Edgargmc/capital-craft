@@ -48,12 +48,11 @@ export class ConsoleLogger implements ILogger {
 
 // Production-ready logger that can be swapped in
 export class SilentLogger implements ILogger {
-  info(_string_message: string): void {
-    // No-op in production
-    console.log(_string_message);
+  info(_message: string, _meta?: Record<string, unknown>): void {
+    // No-op in production - should be completely silent
   }
 
-  error(message: string, error?: Error): void {
+  error(message: string, error?: Error, _meta?: Record<string, unknown>): void {
     // Only log errors in production, without sensitive data
     console.error('Application error occurred');
     if (error && error.message) {
@@ -61,9 +60,8 @@ export class SilentLogger implements ILogger {
     }
   }
 
-  warn(message: string): void {
-    // No-op in production
-    console.error('Application error occurred', message);
+  warn(_message: string, _meta?: Record<string, unknown>): void {
+    // No-op in production - should be completely silent
   }
 }
 

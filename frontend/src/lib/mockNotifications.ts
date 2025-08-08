@@ -16,6 +16,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/learn/first-stock',
     isRead: false,
+    status: 'pending',
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
     priority: 'high'
   },
@@ -32,6 +33,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/achievements',
     isRead: false,
+    status: 'sent',
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
     priority: 'medium'
   },
@@ -49,6 +51,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/learn/volatility',
     isRead: true,
+    status: 'read',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
     priority: 'medium'
   },
@@ -66,6 +69,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/learn/dividends',
     isRead: false,
+    status: 'pending',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
     priority: 'low'
   },
@@ -83,6 +87,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/portfolio/risk-analysis',
     isRead: false,
+    status: 'sent',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
     priority: 'high'
   },
@@ -99,6 +104,7 @@ export const mockNotifications: Notification[] = [
     },
     deepLink: '/learn/pe-ratio',
     isRead: true,
+    status: 'read',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
     priority: 'low'
   }
@@ -111,13 +117,16 @@ export const shouldUseMockData = (error: string | unknown): boolean => {
   // Use mock data when there's an API error
   if (!error) return false;
   
+  // Convert error to string for checking
+  const errorString = String(error);
+  
   return (
-    error.includes('Invalid trigger_type') || 
-    error.includes('Repository error') ||
-    error.includes('404') ||
-    error.includes('Network error') ||
-    error.includes('Failed to fetch') ||
-    error.includes('TIMEOUT')
+    errorString.includes('Invalid trigger_type') ||
+    errorString.includes('Repository error') ||
+    errorString.includes('404') ||
+    errorString.includes('Network error') ||
+    errorString.includes('Failed to fetch') ||
+    errorString.includes('TIMEOUT')
   );
 };
 

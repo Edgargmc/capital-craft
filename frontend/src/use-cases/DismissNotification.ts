@@ -5,8 +5,7 @@ import {
     Notification,
     NotificationEntity,
     Result,
-    NotificationError,
-    NotificationNotFoundError 
+    NotificationError
   } from '../entities/Notification';
   
   // Reuse interfaces from MarkAsRead (DRY principle)
@@ -48,91 +47,68 @@ import {
         reason: request.reason || 'user_dismissed'
       });
   
-      // Input validation
+      // Validate input
       const validationResult = this.validateRequest(request);
       if (!validationResult.success) {
-        this.logger.warn('Invalid dismiss notification request', {
+        return {
+          success: false,
           error: validationResult.error,
-          request
-        });
-        return validationResult;
+          code: validationResult.code
+        };
       }
-  
+
       try {
-        // Check if notification exists and can be dismissed
+        // Check if notification exists
         const existingResult = await this.repository.findById(request.notificationId);
-        
-        if (!existingResult.success) {
-          this.logger.error('Error checking notification existence for dismiss', undefined, {
-            notificationId: request.notificationId,
-            error: existingResult.error
-          });
-          return existingResult;
-        }
-  
-        if (!existingResult.data) {
-          const error = new NotificationNotFoundError(request.notificationId);
-          this.logger.warn('Notification not found for dismiss', {
-            notificationId: request.notificationId,
-            userId: request.userId
-          });
-          
+        if (!existingResult.success || !existingResult.data) {
           return {
             success: false,
-            error: error.message,
-            code: error.code
+            error: existingResult.error || 'Notification not found',
+            code: 'NOT_FOUND'
           };
         }
-  
-                const existingNotification = existingResult.data;
 
-        // If already dismissed, return idempotent response
+        const existingNotification = existingResult.data;
+
+        // Business rule: Check if already dismissed
         if (existingNotification.status === 'dismissed') {
-          this.logger.info('Notification already dismissed', {
-            notificationId: request.notificationId
-          });
-          
           return {
-            success: true,
-            data: {
-              notification: existingNotification,
-              dismissedAt: new Date(),
-              reason: request.reason || 'user_dismissed'
-            }
+            success: false,
+            error: 'Notification is already dismissed',
+            code: 'ALREADY_DISMISSED'
           };
         }
 
-        // Business rule: Check if notification can be dismissed (only for non-dismissed notifications)
+        // Business rule: Check if notification can be dismissed
         const canDismissResult = this.validateDismissalRules(existingNotification);
         if (!canDismissResult.success) {
-          this.logger.warn('Cannot dismiss notification due to business rules', {
-            notificationId: request.notificationId,
-            currentStatus: existingNotification.status,
-            reason: canDismissResult.error
-          });
-          return canDismissResult;
+          return {
+            success: false,
+            error: canDismissResult.error,
+            code: canDismissResult.code
+          };
         }
-  
-        // Update notification status to dismissed
+
+        // Update notification status
         const updateResult = await this.repository.updateStatus(request.notificationId, 'dismissed');
-        
-        if (!updateResult.success) {
-          this.logger.error('Failed to dismiss notification', undefined, {
-            notificationId: request.notificationId,
-            error: updateResult.error
-          });
-          return updateResult;
+        if (!updateResult.success || !updateResult.data) {
+          return {
+            success: false,
+            error: updateResult.error || 'Failed to dismiss notification',
+            code: 'UPDATE_FAILED'
+          };
         }
-  
+
         const dismissedNotification = updateResult.data;
-  
-        this.logger.info('Successfully dismissed notification', {
+
+        // Log success
+        this.logger.info('Notification dismissed successfully', {
           notificationId: request.notificationId,
-          userId: request.userId,
           previousStatus: existingNotification.status,
-          reason: request.reason || 'user_dismissed'
+          userId: request.userId
         });
-  
+
+        // Return success response
         return {
           success: true,
           data: {
@@ -141,7 +117,7 @@ import {
             reason: request.reason || 'user_dismissed'
           }
         };
-  
+
       } catch (error) {
         const notificationError = error instanceof NotificationError 
           ? error 

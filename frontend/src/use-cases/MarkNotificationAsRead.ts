@@ -4,8 +4,7 @@
 import { 
     Notification,
     Result,
-    NotificationError,
-    NotificationNotFoundError 
+    NotificationError
   } from '../entities/Notification';
   
   // Port - Repository interface
@@ -48,36 +47,22 @@ import {
       // Input validation
       const validationResult = this.validateRequest(request);
       if (!validationResult.success) {
-        this.logger.warn('Invalid mark as read request', {
+        return {
+          success: false,
           error: validationResult.error,
-          request
-        });
-        return validationResult;
+          code: validationResult.code
+        };
       }
   
       try {
         // Check if notification exists
         const existingResult = await this.repository.findById(request.notificationId);
         
-        if (!existingResult.success) {
-          this.logger.error('Error checking notification existence', undefined, {
-            notificationId: request.notificationId,
-            error: existingResult.error
-          });
-          return existingResult;
-        }
-  
-        if (!existingResult.data) {
-          const error = new NotificationNotFoundError(request.notificationId);
-          this.logger.warn('Notification not found', {
-            notificationId: request.notificationId,
-            userId: request.userId
-          });
-          
+        if (!existingResult.success || !existingResult.data) {
           return {
             success: false,
-            error: error.message,
-            code: error.code
+            error: existingResult.error || 'Notification not found',
+            code: 'NOT_FOUND'
           };
         }
   
@@ -85,10 +70,6 @@ import {
   
         // Business rule: Check if notification can be marked as read
         if (existingNotification.status === 'read') {
-          this.logger.info('Notification already marked as read', {
-            notificationId: request.notificationId
-          });
-          
           // Return success with current state (idempotent operation)
           return {
             success: true,
@@ -99,12 +80,8 @@ import {
           };
         }
   
+        // Business rule: Cannot mark dismissed notifications as read
         if (existingNotification.status === 'dismissed') {
-          this.logger.warn('Cannot mark dismissed notification as read', {
-            notificationId: request.notificationId,
-            currentStatus: existingNotification.status
-          });
-          
           return {
             success: false,
             error: 'Cannot mark dismissed notification as read',
@@ -112,22 +89,21 @@ import {
           };
         }
   
-        // Update notification status
+        // Update notification status to read
         const updateResult = await this.repository.updateStatus(request.notificationId, 'read');
-        
-        if (!updateResult.success) {
-          this.logger.error('Failed to update notification status', undefined, {
-            notificationId: request.notificationId,
-            error: updateResult.error
-          });
-          return updateResult;
+        if (!updateResult.success || !updateResult.data) {
+          return {
+            success: false,
+            error: updateResult.error || 'Failed to mark notification as read',
+            code: 'UPDATE_FAILED'
+          };
         }
   
         const updatedNotification = updateResult.data;
   
-        this.logger.info('Successfully marked notification as read', {
+        // Log success
+        this.logger.info('Notification marked as read successfully', {
           notificationId: request.notificationId,
-          userId: request.userId,
           previousStatus: existingNotification.status,
           newStatus: updatedNotification.status
         });

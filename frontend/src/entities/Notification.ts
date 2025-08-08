@@ -12,6 +12,7 @@ export interface Notification {
   metadata?: NotificationMetadata;
   deepLink?: string;
   isRead: boolean;
+  status: 'pending' | 'sent' | 'read' | 'dismissed';
   createdAt: string; // ISO string
   priority: NotificationPriority;
 }
@@ -79,9 +80,6 @@ export interface Result<T> {
   code?: string;
 }
 
-
-
-
 // Custom error class
   
   // Domain Exceptions
@@ -123,6 +121,7 @@ export class NotificationEntity {
       metadata: this.extractMetadata(apiResponse),
       deepLink: apiResponse.deep_link,
       isRead: apiResponse.status === 'read',
+      status: apiResponse.status,
       createdAt: apiResponse.created_at,
       priority: this.determinePriority(apiResponse.trigger_type)
     };
@@ -211,6 +210,15 @@ export class NotificationEntity {
       default:
         return 'low';
     }
+  }
+
+  static canBeDismissed(notification: Notification): boolean {
+    // Business logic: notifications can be dismissed unless they are system critical
+    return notification.status !== 'dismissed' && notification.priority !== 'high';
+  }
+
+  static isUrgent(notification: Notification): boolean {
+    return notification.priority === 'high' && notification.status === 'pending';
   }
 }
 

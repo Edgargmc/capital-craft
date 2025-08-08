@@ -38,6 +38,7 @@ describe('FetchNotificationsUseCase', () => {
           triggerType: 'educational_moment',
           deepLink: '/learn/1',
           isRead: false,
+          status: 'pending',
           createdAt: '2025-08-05T00:45:11.372824',
           priority: 'medium'
         },
@@ -50,6 +51,7 @@ describe('FetchNotificationsUseCase', () => {
           triggerType: 'risk_change',
           deepLink: '/portfolio',
           isRead: true,
+          status: 'read',
           createdAt: '2025-08-05T00:30:11.372824',
           priority: 'high'
         }
@@ -167,6 +169,7 @@ describe('FetchNotificationsUseCase', () => {
           message: 'Test',
           triggerType: 'educational_moment',
           isRead: false,
+          status: 'pending',
           createdAt: '2025-08-05T00:45:11.372824',
           priority: 'medium'
         }],

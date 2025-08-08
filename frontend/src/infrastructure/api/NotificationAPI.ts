@@ -7,6 +7,7 @@ import {
   NotificationListEntity,
   NotificationListApiResponse,
   NotificationApiResponse,
+  NotificationEntity,
   Result,
   NotificationError
 } from '../../entities/Notification';
@@ -126,7 +127,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
       });
 
       if (!response.ok) {
-        return this.handleHttpError(response, 'update notification status');
+        return this.handleHttpError<Notification>(response, 'update notification status');
       }
 
       const apiResponse: UpdateNotificationApiResponse = await response.json();
@@ -141,11 +142,10 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
 
       // Transform single notification response
       try {
-        // Import the NotificationEntity if needed
         const notification = NotificationEntity.fromApiResponse(apiResponse.data);
         return {
           success: true,
-          data: notification // Type assertion for now
+          data: notification
         };
       } catch (entityError) {
         return {
@@ -192,7 +192,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Error handling utilities
-  private async handleHttpError(response: Response, operation: string): Promise<Result<NotificationList>> {
+  private async handleHttpError<T>(response: Response, operation: string): Promise<Result<T>> {
     let errorMessage = `HTTP ${response.status} - Failed to ${operation}`;
     let errorCode = `HTTP_${response.status}`;
 
@@ -251,7 +251,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
     }
   }
 
-  private handleNetworkError(error: unknown, operation: string): Result<NotificationList | null> {
+  private handleNetworkError<T>(error: unknown, operation: string): Result<T> {
     if (error instanceof Error) {
       console.error(`🔴 Network error during ${operation}:`, error);
       
@@ -290,12 +290,16 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   // Validation utilities
   private isValidNotificationListResponse(data: unknown): data is NotificationListApiResponse {
     return (
-      data &&
+      data !== null &&
       typeof data === 'object' &&
-      typeof data.success === 'boolean' &&
-      Array.isArray(data.data) &&
-      typeof data.total_count === 'number' &&
-      typeof data.user_id === 'string'
+      'success' in data &&
+      typeof (data as Record<string, unknown>).success === 'boolean' &&
+      'data' in data &&
+      Array.isArray((data as Record<string, unknown>).data) &&
+      'total_count' in data &&
+      typeof (data as Record<string, unknown>).total_count === 'number' &&
+      'user_id' in data &&
+      typeof (data as Record<string, unknown>).user_id === 'string'
     );
   }
 
