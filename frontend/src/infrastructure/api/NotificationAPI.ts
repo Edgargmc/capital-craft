@@ -81,7 +81,8 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Implement INotificationUpdateRepository
-  async findById(): Promise<Result<Notification | null>> {
+  async findById(_notificationId: string): Promise<Result<Notification | null>> {
+    console.log(_notificationId);
     //_notificationId: string //TODO completar metodo
     // Note: Your backend doesn't have individual notification endpoint yet
     // For now, we'll fetch all notifications and filter
@@ -250,7 +251,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
     }
   }
 
-  private handleNetworkError(error: unknown, operation: string): Result<NotificationList> {
+  private handleNetworkError(error: unknown, operation: string): Result<NotificationList | null> {
     if (error instanceof Error) {
       console.error(`🔴 Network error during ${operation}:`, error);
       

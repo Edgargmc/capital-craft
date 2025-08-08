@@ -128,7 +128,8 @@ export class NotificationEntity {
     };
   }
 
-  private static extractUserIdFromDeepLink(): string {
+  private static extractUserIdFromDeepLink(_deepLink: string): string {
+    console.log(_deepLink);
     //_deepLink: string
     //TODO Validar que deberia hacer
     // For now, default to 'demo' - in real app, this would come from auth context
