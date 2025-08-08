@@ -41,7 +41,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
 
   constructor(config: NotificationAPIConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, ''); // Remove trailing slash
-    this.timeout = config.timeout || 10000; // 10 seconds default
+    this.timeout = config.timeout || 100000; // 10 seconds default
     this.retries = config.retries || 2;
   }
 
@@ -325,7 +325,7 @@ export class CapitalCraftNotificationAPI {
           (process.env.NODE_ENV === 'production' 
             ? 'https://capital-craft-production.up.railway.app'
             : 'http://localhost:8000'),
-        timeout: 10000,
+        timeout: 100000,
         retries: 2
       };
       

@@ -5,6 +5,8 @@ import { DismissNotificationUseCase } from '@/use-cases/DismissNotification';
 import { CapitalCraftNotificationAPI } from '@/infrastructure/api/NotificationAPI';
 import { ConsoleLogger } from '@/infrastructure/logging/ConsoleLogger';
 import { Notification } from '@/entities/Notification';
+import { mockNotifications, shouldUseMockData } from '@/lib/mockNotifications';
+
 
 // Updated interface with currentUserId
 interface NotificationState {
@@ -13,6 +15,8 @@ interface NotificationState {
   currentUserId: string | null;
   isLoading: boolean;
   error: string | null;
+  usingMockData: boolean; // Track if we're using mock data
+
   
   // Computed properties
   unreadCount: number;
@@ -36,7 +40,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   currentUserId: null,
   isLoading: false,
   error: null,
-  
+  usingMockData: false,
+
   get unreadCount() {
     const { notifications } = get();
     if (!notifications) return 0;
@@ -68,21 +73,38 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         
         set({ 
           notifications: notificationItems, 
-          isLoading: false 
+          isLoading: false,
+          usingMockData: false 
+
         });
         console.log('✅ Notifications fetched successfully:', notificationItems.length);
       } else {
-        set({ 
-          error: result.error, 
-          isLoading: false 
-        });
+        // Check if we should use mock data
+        if (shouldUseMockData(result.error)) {
+          console.log('⚠️ API error, using mock notifications for demo');
+          set({ 
+            notifications: mockNotifications, 
+            isLoading: false,
+            error: null, // Clear error when using mock
+            usingMockData: true 
+          });
+        } else {
+          set({ 
+            error: result.error, 
+            isLoading: false,
+            usingMockData: false 
+          });
+        }
         console.error('❌ Failed to fetch notifications:', result.error);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log('⚠️ Exception caught, using mock notifications for demo');
+
       set({ 
         error: errorMessage, 
-        isLoading: false 
+        isLoading: false,
+        usingMockData: true 
       });
       console.error('❌ Exception during fetch:', error);
     }
@@ -90,13 +112,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   
   // Mark as read action with optimistic updates
   markAsRead: async (notificationId: string) => {
-    const { notifications, currentUserId } = get();
+    const { notifications, currentUserId, usingMockData } = get();
     if (!notifications || !currentUserId) {
       console.warn('❌ Cannot mark as read: missing notifications or userId');
       return;
     }
     
-    // Optimistic update (SOLID: Single responsibility)
+    // Optimistic update (works for both mock and real data)
     const optimisticNotifications = notifications.map(notification =>
       notification.id === notificationId 
         ? { ...notification, isRead: true }
@@ -106,6 +128,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ notifications: optimisticNotifications });
     console.log(`🔄 Optimistically marked notification ${notificationId} as read`);
     
+    // If using mock data, don't try to call the API
+    if (usingMockData) {
+      console.log('📝 Using mock data - mark as read saved locally only');
+      return;
+    }
+    
     try {
       const result = await markAsReadUseCase.execute({ 
         notificationId, 
@@ -114,7 +142,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       
       if (result.success) {
         console.log(`✅ Successfully marked notification ${notificationId} as read`);
-        // Optimistic update already applied, no need to update again
       } else {
         // Revert optimistic update on failure
         set({ notifications, error: result.error });
@@ -130,7 +157,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   
   // Dismiss notification action
   dismiss: async (notificationId: string) => {
-    const { notifications, currentUserId } = get();
+    const { notifications, currentUserId, usingMockData } = get();
     if (!notifications || !currentUserId) {
       console.warn('❌ Cannot dismiss: missing notifications or userId');
       return;
@@ -144,6 +171,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ notifications: optimisticNotifications });
     console.log(`🔄 Optimistically dismissed notification ${notificationId}`);
     
+    // If using mock data, don't try to call the API
+    if (usingMockData) {
+      console.log('📝 Using mock data - dismiss saved locally only');
+      return;
+    }
+    
     try {
       const result = await dismissNotificationUseCase.execute({ 
         notificationId, 
@@ -152,7 +185,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       
       if (result.success) {
         console.log(`✅ Successfully dismissed notification ${notificationId}`);
-        // Optimistic update already applied
       } else {
         // Revert optimistic update on failure
         set({ notifications, error: result.error });
@@ -169,5 +201,4 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
-
 }));
