@@ -26,7 +26,6 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     isLoading,
     markAsRead,
     dismiss,
-    usingMockData
   } = useNotificationStore();
 
   // Close on click outside
