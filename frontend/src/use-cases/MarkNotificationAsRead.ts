@@ -3,7 +3,6 @@
 
 import { 
     Notification,
-    NotificationEntity,
     Result,
     NotificationError,
     NotificationNotFoundError 
@@ -17,9 +16,9 @@ import {
   
   // Port - Logger interface (reused from FetchNotifications)
   export interface ILogger {
-    info(message: string, meta?: Record<string, any>): void;
-    error(message: string, error?: Error, meta?: Record<string, any>): void;
-    warn(message: string, meta?: Record<string, any>): void;
+    info(message: string, meta?: Record<string, unknown>): void;
+    error(message: string, error?: Error, meta?: Record<string, unknown>): void;
+    warn(message: string, meta?: Record<string, unknown>): void;
   }
   
   // Use Case Input

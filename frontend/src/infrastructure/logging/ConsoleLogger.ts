@@ -12,13 +12,13 @@ export class ConsoleLogger implements ILogger {
     this.enableDebug = enableDebug;
   }
 
-  info(message: string, meta?: Record<string, any>): void {
+  info(message: string, meta?: Record<string, unknown>): void {
     if (this.enableDebug) {
       console.log(`${this.prefix} INFO: ${message}`, meta ? this.formatMeta(meta) : '');
     }
   }
 
-  error(message: string, error?: Error, meta?: Record<string, any>): void {
+  error(message: string, error?: Error, meta?: Record<string, unknown>): void {
     console.error(`${this.prefix} ERROR: ${message}`);
     
     if (error) {
@@ -33,11 +33,11 @@ export class ConsoleLogger implements ILogger {
     }
   }
 
-  warn(message: string, meta?: Record<string, any>): void {
+  warn(message: string, meta?: Record<string, unknown>): void {
     console.warn(`${this.prefix} WARN: ${message}`, meta ? this.formatMeta(meta) : '');
   }
 
-  private formatMeta(meta: Record<string, any>): string {
+  private formatMeta(meta: Record<string, unknown>): string {
     try {
       return JSON.stringify(meta, null, 2);
     } catch {

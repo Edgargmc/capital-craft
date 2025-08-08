@@ -81,7 +81,8 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Implement INotificationUpdateRepository
-  async findById(notificationId: string): Promise<Result<Notification | null>> {
+  async findById(): Promise<Result<Notification | null>> {
+    //_notificationId: string //TODO completar metodo
     // Note: Your backend doesn't have individual notification endpoint yet
     // For now, we'll fetch all notifications and filter
     // TODO: Add GET /notifications/{id} endpoint to backend
@@ -140,10 +141,10 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
       // Transform single notification response
       try {
         // Import the NotificationEntity if needed
-        // const notification = NotificationEntity.fromApiResponse(apiResponse.data);
+        const notification = NotificationEntity.fromApiResponse(apiResponse.data);
         return {
           success: true,
-          data: apiResponse.data as any // Type assertion for now
+          data: notification // Type assertion for now
         };
       } catch (entityError) {
         return {
@@ -190,7 +191,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Error handling utilities
-  private async handleHttpError(response: Response, operation: string): Promise<Result<any>> {
+  private async handleHttpError(response: Response, operation: string): Promise<Result<NotificationList>> {
     let errorMessage = `HTTP ${response.status} - Failed to ${operation}`;
     let errorCode = `HTTP_${response.status}`;
 
@@ -249,7 +250,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
     }
   }
 
-  private handleNetworkError(error: unknown, operation: string): Result<any> {
+  private handleNetworkError(error: unknown, operation: string): Result<NotificationList> {
     if (error instanceof Error) {
       console.error(`🔴 Network error during ${operation}:`, error);
       
@@ -286,7 +287,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Validation utilities
-  private isValidNotificationListResponse(data: any): data is NotificationListApiResponse {
+  private isValidNotificationListResponse(data: unknown): data is NotificationListApiResponse {
     return (
       data &&
       typeof data === 'object' &&
@@ -349,8 +350,8 @@ export class NotificationAPIExtension {
     const api = CapitalCraftNotificationAPI.getInstance();
     const result = await api.fetchByUserId(userId);
     
-    if (!result.success) {
-      throw new NotificationError(result.error, result.code);
+    if (!result.success || !result.data) {
+      throw new NotificationError(result.error || 'Unknown error', result.code);
     }
     
     return result.data;
@@ -361,8 +362,8 @@ export class NotificationAPIExtension {
     const api = CapitalCraftNotificationAPI.getInstance();
     const result = await api.updateStatus(notificationId, 'read');
     
-    if (!result.success) {
-      throw new NotificationError(result.error, result.code);
+    if (!result.success || !result.data) {
+      throw new NotificationError(result.error || 'Unknown error', result.code);
     }
     
     return result.data;
@@ -373,8 +374,8 @@ export class NotificationAPIExtension {
     const api = CapitalCraftNotificationAPI.getInstance();
     const result = await api.updateStatus(notificationId, 'dismissed');
     
-    if (!result.success) {
-      throw new NotificationError(result.error, result.code);
+    if (!result.success || !result.data) {
+      throw new NotificationError(result.error || 'Unknown error', result.code);
     }
     
     return result.data;

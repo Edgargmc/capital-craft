@@ -326,10 +326,10 @@ const ZustandStoreTest: React.FC = () => {
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
           <strong>💡 Testing Instructions:</strong>
           <ol className="mt-1 ml-4 list-decimal space-y-1">
-            <li>Click "Test Store" button</li>
+            <li>Click &quot;Test Store&quot; button</li>
             <li>Open browser console (F12)</li>
-            <li>Look for "Testing Zustand store..." logs</li>
-            <li>Verify "fetchNotifications called with userId: test-user-123"</li>
+            <li>Look for &quot;Testing Zustand store...&quot; logs</li>
+            <li>Verify &quot;fetchNotifications called with userId: test-user-123&quot;</li>
           </ol>
         </div>
       </div>

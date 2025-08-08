@@ -16,10 +16,10 @@ import { Notification, NotificationType } from '@/entities/Notification';
 
 interface NotificationDropdownProps {
   onClose: () => void;
-  userId: string;
+  userId?: string;
 }
 
-export function NotificationDropdown({ onClose, userId }: NotificationDropdownProps) {
+export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
@@ -236,7 +236,7 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
             <Bell className="h-12 w-12 text-gray-300 mb-2" />
             <p className="text-gray-500 text-center">No notifications yet</p>
             <p className="text-gray-400 text-sm text-center mt-1">
-              We'll notify you when something important happens
+              We&apos;ll notify you when something important happens
             </p>
           </div>
         )}

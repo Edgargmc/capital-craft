@@ -14,8 +14,7 @@ export function NotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
     notifications, 
     isLoading, 
-    fetchNotifications,
-    unreadCount 
+    fetchNotifications
   } = useNotificationStore();
 
   // Fetch notifications on mount and set up polling
@@ -79,7 +78,6 @@ export function NotificationBell({ userId, onClick }: NotificationBellProps) {
 export function MobileNotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
     notifications, 
-    isLoading, 
     fetchNotifications 
   } = useNotificationStore();
 

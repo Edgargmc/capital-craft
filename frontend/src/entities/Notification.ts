@@ -41,7 +41,7 @@ export interface NotificationMetadata {
   learningContent?: string;
   dividendYield?: number;
   stocksOwned?: number;
-  [key: string]: any; // Allow additional fields
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 // API Response type from backend (what we actually receive)
@@ -97,7 +97,7 @@ export interface Result<T> {
   }
   
   export class NotificationValidationError extends NotificationError {
-    constructor(field: string, value: any) {
+    constructor(field: string, value: unknown) {
       super(`Invalid ${field}: ${value}`, 'VALIDATION_ERROR');
       this.name = 'NotificationValidationError';
     }
@@ -128,7 +128,9 @@ export class NotificationEntity {
     };
   }
 
-  private static extractUserIdFromDeepLink(deepLink: string): string {
+  private static extractUserIdFromDeepLink(): string {
+    //_deepLink: string
+    //TODO Validar que deberia hacer
     // For now, default to 'demo' - in real app, this would come from auth context
     return 'demo';
   }
