@@ -74,3 +74,8 @@ coverage/
 # Database
 *.db
 *.sqlite.env
+
+
+#AI 
+.windsurf/*
+CLAUDE.md
