@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.entities.stock import Stock
 from decimal import Decimal
@@ -14,9 +14,19 @@ from app.use_cases.get_learning_content import GetLearningContent, GetRecommende
 from app.infrastructure.content.content_repository import ContentRepositoryFactory
 from app.core.entities.learning_content import LearningContent
 
-# ADD these imports at the top (after your existing imports)
+# Updated notification system imports with dependency injection
 from app.use_cases.generate_notification import GenerateNotificationUseCase
-from app.infrastructure.providers.mock_notification_repository import MockNotificationRepository
+from app.use_cases.mark_notification_as_read import MarkNotificationAsReadUseCase, NotificationNotFoundError, NotificationAlreadyDismissedError
+from app.use_cases.dismiss_notification import DismissNotificationUseCase
+from app.use_cases.mark_all_notifications_as_read import MarkAllNotificationsAsReadUseCase
+from app.infrastructure.dependency_injection import (
+    get_notification_repository,
+    get_mark_notification_as_read_use_case,
+    get_dismiss_notification_use_case,
+    get_mark_all_notifications_as_read_use_case,
+    get_generate_notification_use_case
+)
+from app.core.interfaces.notification_repository import NotificationRepository
 
 import os 
 from dotenv import load_dotenv
@@ -32,9 +42,8 @@ cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
 stock_data_provider = ProviderFactory.create_provider()
 # TO:
-# Initialize notification system
-notification_repository = MockNotificationRepository()
-notification_service = GenerateNotificationUseCase(notification_repository)
+# Initialize notification system using dependency injection
+notification_service = get_generate_notification_use_case()
 
 # Enhanced portfolio risk analysis with notifications
 analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(
@@ -191,52 +200,6 @@ async def buy_stock(user_id: str, request: BuyStockRequest):
                 "shares": request.shares
             },
             "educational_notifications_triggered": True  # NEW
-        }
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-    
-
-    """Buy stocks for user portfolio"""
-    try:
-        # Get or create portfolio
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        current_portfolio = portfolios_db[user_id]
-        
-        # Execute buy
-        get_stock_data = GetStockDataUseCase(stock_data_provider)
-        buy_stock_use_case = BuyStock(get_stock_data)
-        updated_portfolio = buy_stock_use_case.execute(
-            current_portfolio, 
-            request.symbol, 
-            request.shares
-        )
-        
-        # Save updated portfolio
-        portfolios_db[user_id] = updated_portfolio
-        
-        return {
-            "user_id": updated_portfolio.user_id,
-            "cash_balance": float(updated_portfolio.cash_balance),
-            "holdings": {
-                symbol: {
-                    "symbol": holding.symbol,
-                    "shares": holding.shares,
-                    "average_price": float(holding.average_price)
-                }
-                for symbol, holding in updated_portfolio.holdings.items()
-            },
-            "total_holdings": len(updated_portfolio.holdings),
-            "transaction": {
-                "action": "buy",
-                "symbol": request.symbol.upper(),
-                "shares": request.shares
-            }
         }
         
     except ValueError as e:
@@ -522,15 +485,19 @@ async def get_portfolio_risk_analysis(user_id: str):
         raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
 
-# ADD new endpoint for user notifications
+# Updated endpoint for user notifications with dependency injection
 @app.get("/users/{user_id}/notifications")
-async def get_user_notifications(user_id: str, limit: int = 10):
+async def get_user_notifications(
+    user_id: str, 
+    limit: int = 10,
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
     """
     Get user's notification history
-    Baby step: Simple notification retrieval
+    Updated to use Clean Architecture with dependency injection
     """
     try:
-        notifications = await notification_repository.get_user_notifications(
+        notifications = await repository.get_user_notifications(
             user_id, limit=limit
         )
         
@@ -544,8 +511,12 @@ async def get_user_notifications(user_id: str, limit: int = 10):
                     "deep_link": notification.deep_link,
                     "trigger_type": notification.trigger_type.value,
                     "status": notification.status.value,
-                    "created_at": notification.created_at.isoformat(),
-                    "sent_at": notification.sent_at.isoformat() if notification.sent_at else None
+                    "created_at": notification.created_at.isoformat() if notification.created_at else None,
+                    "sent_at": notification.sent_at.isoformat() if notification.sent_at else None,
+                    "type": notification.notification_type,
+                    "priority": notification.priority,
+                    "isRead": notification.is_read,
+                    "dismissed": notification.dismissed
                 }
                 for notification in notifications
             ],
@@ -600,6 +571,137 @@ async def send_test_notification(user_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Error sending test notification: {str(e)}"
+        )
+
+# ========================================
+# NOTIFICATION PERSISTENCE ENDPOINTS
+# Following Clean Architecture + SOLID principles
+# ========================================
+
+@app.patch("/notifications/{notification_id}")
+async def mark_notification_as_read(
+    notification_id: str,
+    use_case: MarkNotificationAsReadUseCase = Depends(get_mark_notification_as_read_use_case)
+):
+    """
+    Mark notification as read
+    Following Clean Architecture with dependency injection
+    """
+    try:
+        success = await use_case.execute(notification_id)
+        if success:
+            return {
+                "success": True,
+                "message": "Notification marked as read",
+                "notification_id": notification_id
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="Notification not found or already dismissed"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error marking notification as read: {str(e)}"
+        )
+
+@app.delete("/notifications/{notification_id}")
+async def dismiss_notification(
+    notification_id: str,
+    use_case: DismissNotificationUseCase = Depends(get_dismiss_notification_use_case)
+):
+    """
+    Dismiss notification permanently
+    Following Clean Architecture with dependency injection
+    """
+    try:
+        success = await use_case.execute(notification_id)
+        if success:
+            return {
+                "success": True,
+                "message": "Notification dismissed",
+                "notification_id": notification_id
+            }
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="Notification not found or cannot be dismissed"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error dismissing notification: {str(e)}"
+        )
+
+@app.post("/notifications/mark-all-read")
+async def mark_all_notifications_as_read(
+    request: dict,
+    use_case: MarkAllNotificationsAsReadUseCase = Depends(get_mark_all_notifications_as_read_use_case)
+):
+    """
+    Mark all notifications as read for a user
+    Following Clean Architecture with dependency injection
+    """
+    try:
+        user_id = request.get("userId")
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="userId is required"
+            )
+        
+        marked_count = await use_case.execute(user_id)
+        return {
+            "success": True,
+            "message": f"Marked {marked_count} notifications as read",
+            "user_id": user_id,
+            "marked_count": marked_count
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error marking all notifications as read: {str(e)}"
+        )
+
+@app.get("/notifications/{notification_id}")
+async def get_notification_by_id(
+    notification_id: str,
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
+    """
+    Get specific notification by ID
+    Following Clean Architecture with dependency injection
+    """
+    try:
+        notification = await repository.get_notification_by_id(notification_id)
+        if not notification:
+            raise HTTPException(
+                status_code=404,
+                detail="Notification not found"
+            )
+        
+        return {
+            "success": True,
+            "data": {
+                "id": notification.id,
+                "title": notification.title,
+                "message": notification.message,
+                "deep_link": notification.deep_link,
+                "trigger_type": notification.trigger_type.value,
+                "status": notification.status.value,
+                "created_at": notification.created_at.isoformat() if notification.created_at else None,
+                "sent_at": notification.sent_at.isoformat() if notification.sent_at else None,
+                "type": notification.notification_type,
+                "priority": notification.priority,
+                "isRead": notification.is_read,
+                "dismissed": notification.dismissed
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving notification: {str(e)}"
         )
 
 # KEEP ONLY ONE: Health check endpoint

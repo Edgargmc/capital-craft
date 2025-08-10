@@ -1,0 +1,49 @@
+{
+  "demo": [
+    {
+      "id": "96bf2992-d4a6-4aad-bb4b-88d71f333640",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-10T00:11:43.640367",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 10 shares of TSLA"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "f5b474f2-8df3-456f-9346-b001e2672e3a",
+      "userId": "demo",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-10T00:11:43.640766",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    }
+  ]
+}

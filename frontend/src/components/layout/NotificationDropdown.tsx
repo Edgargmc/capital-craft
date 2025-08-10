@@ -26,10 +26,20 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     isLoading,
     markAsRead,
     dismiss,
+    markAllAsRead,
     usingMockData
   } = useNotificationStore();
 
-  // Close on click outside
+  // Debug: Log component state (development only)
+  if (process.env.NODE_ENV === 'development' && Math.random() < 0.05) {
+    console.log('🔧 NotificationDropdown rendered:', {
+      notificationsCount: notifications?.length || 0,
+      isLoading,
+      usingMockData
+    });
+  }
+
+  // Close on click outside - PROBLEMATIC, DISABLED
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -37,8 +47,9 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    // DISABLED - This interferes with notification clicks
+    // document.addEventListener('mousedown', handleClickOutside);
+    // return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
   // Close on Escape key
@@ -93,8 +104,8 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     // Navigate to deep link if available
     if (notification.deepLink) {
       // In a real app, you'd use Next.js router
-      console.log('Navigate to:', notification.deepLink);
       // router.push(notification.deepLink);
+      console.log('Navigating to:', notification.deepLink);
     }
   };
 
@@ -102,15 +113,15 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
   const handleMarkAllAsRead = async () => {
     if (!notifications) return;
     
-    const unreadNotifications = notifications.filter(n => !n.isRead);
-    for (const notification of unreadNotifications) {
-      await markAsRead(notification.id);
-    }
+    // Use fallback userId 'demo' following Clean Architecture pattern
+    const currentUserId = 'demo'; // TODO: Get from auth context
+    await markAllAsRead(currentUserId);
   };
 
   // Handle dismiss notification
-  const handleDismiss = async (e: React.MouseEvent, notificationId: string) => {
-    e.stopPropagation(); // Prevent triggering the click handler
+  const handleDismiss = async (e: React.MouseEvent | React.KeyboardEvent, notificationId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     await dismiss(notificationId);
   };
 
@@ -157,79 +168,111 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
           </div>
         ) : notifications && notifications.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                onClick={() => handleNotificationClick(notification)}
-                className={`group px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  !notification.isRead ? 'bg-blue-50 hover:bg-blue-100' : ''
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  {/* Icon */}
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getNotificationIcon(notification.type)}
-                  </div>
+            {notifications.map((notification, index) => {
+              return (
+                <div
+                  key={notification.id}
+                  onClick={() => {
+                    console.log('🖱️ CLICK TEST:', notification.id);
+                    handleNotificationClick(notification);
+                  }}
+                  className={`group px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    !notification.isRead ? 'bg-blue-50 hover:bg-blue-100' : ''
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleNotificationClick(notification);
+                    }
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    {/* Icon */}
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getNotificationIcon(notification.type)}
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className={`text-sm ${
-                          !notification.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
-                        }`}>
-                          {notification.title}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center mt-1 space-x-2">
-                          <span className="text-xs text-gray-500">
-                            {getTimeAgo(notification.createdAt)}
-                          </span>
-                          {notification.priority === 'high' && (
-                            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
-                              Important
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className={`text-sm ${
+                            !notification.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
+                          }`}>
+                            {notification.title}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center mt-1 space-x-2">
+                            <span className="text-xs text-gray-500">
+                              {getTimeAgo(notification.createdAt)}
                             </span>
+                            {notification.priority === 'high' && (
+                              <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                                Important
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!notification.isRead && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markAsRead(notification.id);
+                              }}
+                              className="p-1 rounded-full hover:bg-blue-100 cursor-pointer"
+                              title="Mark as read"
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.stopPropagation();
+                                  markAsRead(notification.id);
+                                }
+                              }}
+                            >
+                              <Check className="h-3 w-3 text-blue-600" />
+                            </div>
                           )}
+                          
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDismiss(e, notification.id);
+                            }}
+                            className="p-1 rounded-full hover:bg-red-100 cursor-pointer"
+                            title="Dismiss"
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                handleDismiss(e, notification.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-600" />
+                          </div>
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {!notification.isRead && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              markAsRead(notification.id);
-                            }}
-                            className="p-1 rounded hover:bg-gray-200"
-                            title="Mark as read"
-                          >
-                            <Check className="h-4 w-4 text-gray-500" />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => handleDismiss(e, notification.id)}
-                          className="p-1 rounded hover:bg-gray-200"
-                          title="Dismiss"
-                        >
-                          <Trash2 className="h-4 w-4 text-gray-500" />
-                        </button>
-                      </div>
+                      {/* Deep link indicator */}
+                      {notification.deepLink && (
+                        <div className="flex items-center mt-2 text-blue-600 text-xs font-medium">
+                          <span>View content</span>
+                          <ChevronRight className="h-3 w-3 ml-0.5" />
+                        </div>
+                      )}
                     </div>
-
-                    {/* Deep link indicator */}
-                    {notification.deepLink && (
-                      <div className="flex items-center mt-2 text-blue-600 text-xs font-medium">
-                        <span>View content</span>
-                        <ChevronRight className="h-3 w-3 ml-0.5" />
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 px-4">

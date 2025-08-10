@@ -20,6 +20,10 @@ import {
   INotificationUpdateRepository 
 } from '../../use-cases/MarkNotificationAsRead';
 
+import { 
+  IBulkNotificationRepository 
+} from '../../use-cases/MarkAllNotificationsAsRead';
+
 // Configuration interface
 export interface NotificationAPIConfig {
   baseUrl: string;
@@ -34,8 +38,8 @@ interface UpdateNotificationApiResponse {
   message?: string;
 }
 
-// Main NotificationAPI class implementing both repository interfaces
-export class NotificationAPI implements INotificationRepository, INotificationUpdateRepository {
+// Main NotificationAPI class implementing all repository interfaces
+export class NotificationAPI implements INotificationRepository, INotificationUpdateRepository, IBulkNotificationRepository {
   private readonly baseUrl: string;
   private readonly timeout: number;
   private readonly retries: number;
@@ -82,61 +86,28 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   }
 
   // Implement INotificationUpdateRepository
-  async findById(_notificationId: string): Promise<Result<Notification | null>> {
-    console.log(_notificationId);
-    //_notificationId: string //TODO completar metodo
-    // Note: Your backend doesn't have individual notification endpoint yet
-    // For now, we'll fetch all notifications and filter
-    // TODO: Add GET /notifications/{id} endpoint to backend
-    
+  async findById(notificationId: string): Promise<Result<Notification | null>> {
     try {
-      // Extract userId from notificationId or use a different strategy
-      // For now, this is a limitation that needs backend support
-      return {
-        success: false,
-        error: 'findById not implemented - requires backend endpoint',
-        code: 'NOT_IMPLEMENTED'
-      };
-
-      // Future implementation when backend supports it:
-      // const url = `${this.baseUrl}/notifications/${notificationId}`;
-      // const response = await this.fetchWithRetry(url);
-      // ... handle response
-      
-    } catch (error) {
-      return this.handleNetworkError(error, 'find notification by id');
-    }
-  }
-
-  async updateStatus(
-    notificationId: string, 
-    status: 'read' | 'dismissed'
-  ): Promise<Result<Notification>> {
-    // Note: Your backend doesn't have update endpoint yet
-    // This is a design decision point - do we add PATCH endpoint?
-    
-    const url = `${this.baseUrl}/notifications/${notificationId}`;
-    
-    try {
-      const response = await this.fetchWithRetry(url, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status })
-      });
+      const url = `${this.baseUrl}/notifications/${notificationId}`;
+      const response = await this.fetchWithRetry(url);
 
       if (!response.ok) {
-        return this.handleHttpError<Notification>(response, 'update notification status');
+        if (response.status === 404) {
+          return {
+            success: true,
+            data: null
+          };
+        }
+        return this.handleHttpError<Notification | null>(response, 'find notification by id');
       }
 
-      const apiResponse: UpdateNotificationApiResponse = await response.json();
+      const apiResponse = await response.json();
       
       if (!apiResponse.success || !apiResponse.data) {
         return {
           success: false,
-          error: apiResponse.message || 'Failed to update notification',
-          code: 'UPDATE_FAILED'
+          error: 'Notification not found',
+          code: 'NOT_FOUND'
         };
       }
 
@@ -150,13 +121,123 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
       } catch (entityError) {
         return {
           success: false,
-          error: entityError instanceof Error ? entityError.message : 'Entity transformation failed',
-          code: 'ENTITY_TRANSFORM_ERROR'
+          error: `Entity transformation failed: ${entityError}`,
+          code: 'TRANSFORMATION_ERROR'
+        };
+      }
+      
+    } catch (error) {
+      return this.handleNetworkError(error, 'find notification by id');
+    }
+  }
+
+  async updateStatus(
+    notificationId: string, 
+    status: 'read' | 'dismissed'
+  ): Promise<Result<Notification>> {
+    try {
+      let url: string;
+      let method: string;
+      
+      // Use appropriate endpoint based on status
+      if (status === 'read') {
+        url = `${this.baseUrl}/notifications/${notificationId}`;
+        method = 'PATCH';
+      } else if (status === 'dismissed') {
+        url = `${this.baseUrl}/notifications/${notificationId}`;
+        method = 'DELETE';
+      } else {
+        return {
+          success: false,
+          error: `Invalid status: ${status}`,
+          code: 'INVALID_STATUS'
+        };
+      }
+      
+      const response = await this.fetchWithRetry(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        return this.handleHttpError<Notification>(response, 'update notification status');
+      }
+
+      const apiResponse = await response.json();
+      
+      if (!apiResponse.success) {
+        return {
+          success: false,
+          error: apiResponse.message || 'Failed to update notification',
+          code: 'UPDATE_FAILED'
         };
       }
 
+      // For successful update, fetch the updated notification
+      const updatedNotificationResult = await this.findById(notificationId);
+      
+      if (!updatedNotificationResult.success || !updatedNotificationResult.data) {
+        // If we can't fetch the updated notification, return success with basic info
+        return {
+          success: true,
+          data: {
+            id: notificationId,
+            status: status === 'read' ? 'read' : 'dismissed',
+            isRead: status === 'read'
+          } as Notification
+        };
+      }
+
+      return {
+        success: true,
+        data: updatedNotificationResult.data
+      };
+      
     } catch (error) {
       return this.handleNetworkError(error, 'update notification status');
+    }
+  }
+
+  /**
+   * Mark all notifications as read for a user
+   * New method for bulk operations
+   */
+  async markAllAsRead(userId: string): Promise<Result<{ markedCount: number }>> {
+    try {
+      const url = `${this.baseUrl}/notifications/mark-all-read`;
+      const response = await this.fetchWithRetry(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!response.ok) {
+        return this.handleHttpError<{ markedCount: number }>(response, 'mark all notifications as read');
+      }
+
+      const apiResponse = await response.json();
+      
+      if (!apiResponse.success) {
+        return {
+          success: false,
+          error: apiResponse.message || 'Failed to mark all notifications as read',
+          code: 'BULK_UPDATE_FAILED'
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          markedCount: apiResponse.marked_count || 0
+        }
+      };
+      
+    } catch (error) {
+      return this.handleNetworkError(error, 'mark all notifications as read');
     }
   }
 

@@ -25,18 +25,20 @@ class GenerateNotificationUseCase:
         self, 
         user_id: str, 
         trigger_type: NotificationTriggerType,
-        trigger_data: Dict[str, Any]
+        trigger_data: Dict[str, Any],
+        deduplication_hours: int = 24
     ) -> Optional[Notification]:
         """
-        Generate and save contextual notification based on trigger
+        Generate and save contextual notification based on trigger with deduplication
         
         Args:
             user_id: User identifier
             trigger_type: Type of trigger that initiated notification
             trigger_data: Context data for notification generation
+            deduplication_hours: Hours to check for duplicate notifications (default 24)
             
         Returns:
-            Generated notification or None if no template matched
+            Generated notification or None if no template matched or duplicate exists
         """
         
         # Find matching template
@@ -47,7 +49,19 @@ class GenerateNotificationUseCase:
         # Generate notification from template
         notification = template.generate_notification(user_id, trigger_data)
         
-        # Save notification
+        # Check for duplicate notifications within time window
+        existing_notification = await self.notification_repository.find_similar_notification(
+            user_id=user_id,
+            trigger_type=trigger_type,
+            trigger_data=trigger_data,
+            within_hours=deduplication_hours
+        )
+        
+        if existing_notification:
+            # Return existing notification instead of creating duplicate
+            return existing_notification
+        
+        # Save new notification
         await self.notification_repository.save_notification(notification)
         
         return notification
@@ -55,10 +69,11 @@ class GenerateNotificationUseCase:
     async def execute_batch(
         self,
         user_id: str,
-        triggers: List[Dict[str, Any]]
+        triggers: List[Dict[str, Any]],
+        deduplication_hours: int = 24
     ) -> List[Notification]:
         """
-        Generate multiple notifications for a user
+        Generate multiple notifications for a user with deduplication
         Useful for portfolio analysis that triggers multiple learnings
         """
         notifications = []
@@ -68,7 +83,7 @@ class GenerateNotificationUseCase:
             trigger_data = trigger.get('trigger_data', {})
             
             if trigger_type:
-                notification = await self.execute(user_id, trigger_type, trigger_data)
+                notification = await self.execute(user_id, trigger_type, trigger_data, deduplication_hours)
                 if notification:
                     notifications.append(notification)
         

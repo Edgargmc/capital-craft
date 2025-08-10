@@ -28,6 +28,7 @@ class NotificationStatus(Enum):
 class Notification:
     """
     Core notification entity - follows same pattern as Stock and Portfolio
+    Extended with persistence fields for read/dismiss functionality
     """
     user_id: str
     trigger_type: NotificationTriggerType
@@ -39,6 +40,10 @@ class Notification:
     status: NotificationStatus = NotificationStatus.PENDING
     created_at: Optional[datetime] = None
     sent_at: Optional[datetime] = None
+    is_read: bool = False
+    dismissed: bool = False
+    priority: str = "medium"  # low, medium, high, urgent
+    notification_type: str = "education"  # education, portfolio, system
     
     def __post_init__(self):
         if self.id is None:
@@ -54,6 +59,26 @@ class Notification:
     def mark_as_failed(self) -> None:
         """Mark notification as failed to send"""
         self.status = NotificationStatus.FAILED
+    
+    def mark_as_read(self) -> None:
+        """Mark notification as read by user"""
+        self.is_read = True
+    
+    def mark_as_unread(self) -> None:
+        """Mark notification as unread"""
+        self.is_read = False
+    
+    def dismiss(self) -> None:
+        """Dismiss notification (soft delete)"""
+        self.dismissed = True
+    
+    def can_be_dismissed(self) -> bool:
+        """Check if notification can be dismissed"""
+        return not self.dismissed
+    
+    def is_urgent(self) -> bool:
+        """Check if notification is urgent priority"""
+        return self.priority == "urgent"
     
     def is_educational_trigger(self) -> bool:
         """Check if notification is education-focused"""

@@ -5,6 +5,7 @@ import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame, B
 import React, { useState, useEffect } from 'react';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { NotificationDropdown } from './NotificationDropdown';
+import { NotificationBell } from './NotificationBell';
 
 // Portfolio Risk Calculator (from previous component)
 interface Holding {
@@ -138,67 +139,6 @@ const PortfolioRiskBadge: React.FC<PortfolioRiskBadgeProps> = ({ holdings }) => 
   );
 };
 
-// NotificationBell Component (inline for now, can be extracted later)
-interface NotificationBellProps {
-  userId: string;
-  onClick: () => void;
-}
-
-const NotificationBell: React.FC<NotificationBellProps> = ({ userId, onClick }) => {
-  const { 
-    notifications, 
-    isLoading, 
-    fetchNotifications
-  } = useNotificationStore();
-
-  useEffect(() => {
-    if (userId) {
-      // Initial fetch
-      fetchNotifications(userId);
-
-      // Poll every 30 seconds
-      const interval = setInterval(() => {
-        fetchNotifications(userId);
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [userId, fetchNotifications]);
-
-  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
-
-  return (
-    <button
-      onClick={onClick}
-      className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors group"
-      aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
-    >
-      <Bell className={`h-5 w-5 transition-colors ${
-        unreadCount > 0 
-          ? 'text-gray-700 group-hover:text-gray-900' 
-          : 'text-gray-500 group-hover:text-gray-700'
-      }`} />
-      
-      {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center">
-          <span className="text-white text-xs font-bold">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        </span>
-      )}
-
-      {isLoading && (
-        <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-          <span className="flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-          </span>
-        </span>
-      )}
-    </button>
-  );
-};
-
 // Updated Header Props
 interface HeaderProps {
   summary: {
@@ -216,7 +156,24 @@ interface HeaderProps {
 }
 
 export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'demo' }: HeaderProps) {
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileNotifications, setShowMobileNotifications] = useState(false);
+  const [showDesktopNotifications, setShowDesktopNotifications] = useState(false);
+  const { fetchNotifications } = useNotificationStore();
+
+  // Single fetch logic for all notification bells
+  useEffect(() => {
+    if (userId) {
+      // Initial fetch
+      fetchNotifications(userId);
+
+      // Poll every 30 seconds  
+      const interval = setInterval(() => {
+        fetchNotifications(userId);
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [userId, fetchNotifications]);
 
   if (loading || !summary) {
     return (
@@ -303,13 +260,19 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
           <div className="relative">
             <NotificationBell 
               userId={userId}
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                console.log('🔔 Mobile NotificationBell clicked, current showMobileNotifications:', showMobileNotifications);
+                setShowMobileNotifications(!showMobileNotifications);
+              }}
             />
-            {showNotifications && (
-              <NotificationDropdown 
-                onClose={() => setShowNotifications(false)}
-                userId={userId}
-              />
+            {showMobileNotifications && (
+              <>
+                {console.log('📋 Rendering NotificationDropdown (mobile)')}
+                <NotificationDropdown 
+                  onClose={() => setShowMobileNotifications(false)}
+                  userId={userId}
+                />
+              </>
             )}
           </div>
         </div>
@@ -408,16 +371,21 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
           <div className="relative">
             <NotificationBell 
               userId={userId}
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                console.log('🔔 Desktop NotificationBell clicked, current showDesktopNotifications:', showDesktopNotifications);
+                setShowDesktopNotifications(!showDesktopNotifications);
+              }}
             />
-            {showNotifications && (
-              <NotificationDropdown 
-                onClose={() => setShowNotifications(false)}
-                userId={userId}
-              />
+            {showDesktopNotifications && (
+              <>
+                {console.log('📋 Rendering NotificationDropdown (desktop)')}
+                <NotificationDropdown 
+                  onClose={() => setShowDesktopNotifications(false)}
+                  userId={userId}
+                />
+              </>
             )}
           </div>
-
         </div>
       </div>
     </div>

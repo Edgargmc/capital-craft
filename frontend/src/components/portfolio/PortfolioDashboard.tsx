@@ -11,6 +11,7 @@ import { SellStockModal } from '@/components/modals/SellStockModal';
 import { LearningAlert } from '@/components/learning/LearningAlert';
 import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { RiskAnalysis } from '@/lib/api';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
 
 
 
@@ -25,7 +26,8 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showLearningModal, setShowLearningModal] = useState(false);
 
-
+  // Notification store
+  const { fetchNotifications } = useNotificationStore();
   
   // State para modals
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -46,6 +48,19 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to refresh both portfolio and notifications after trade
+  const handleTradeSuccess = async () => {
+    console.log('🔄 Trade successful - refreshing portfolio and notifications');
+    
+    // Refresh portfolio data
+    await fetchData();
+    
+    // Refresh notifications immediately to show new educational content
+    await fetchNotifications(userId);
+    
+    console.log('✅ Portfolio and notifications refreshed');
   };
   
   useEffect(() => {
@@ -172,7 +187,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
       <BuyStockModal
         isOpen={showBuyModal}
         onClose={() => setShowBuyModal(false)}
-        onSuccess={fetchData}
+        onSuccess={handleTradeSuccess}
         userId={userId}
         availableCash={summary?.cash_balance || 0}
       />
@@ -180,7 +195,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
       <SellStockModal
         isOpen={showSellModal}
         onClose={() => setShowSellModal(false)}
-        onSuccess={fetchData}
+        onSuccess={handleTradeSuccess}
         userId={userId}
         holdings={summary?.holdings || {}}
       />

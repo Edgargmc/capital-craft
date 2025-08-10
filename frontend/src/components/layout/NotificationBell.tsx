@@ -2,7 +2,6 @@
 'use client';
 
 import { Bell } from 'lucide-react';
-import { useEffect } from 'react';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 
 interface NotificationBellProps {
@@ -13,24 +12,10 @@ interface NotificationBellProps {
 export function NotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
     notifications, 
-    isLoading, 
-    fetchNotifications
+    isLoading
   } = useNotificationStore();
 
-  // Fetch notifications on mount and set up polling
-  useEffect(() => {
-    if (userId) {
-      // Initial fetch
-      fetchNotifications(userId);
-
-      // Poll every 30 seconds for new notifications
-      const interval = setInterval(() => {
-        fetchNotifications(userId);
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [userId, fetchNotifications]);
+  // No fetch logic - this is handled by the parent Header component
 
   // Calculate unread count safely
   const displayCount = notifications 
@@ -77,21 +62,8 @@ export function NotificationBell({ userId, onClick }: NotificationBellProps) {
 // Mobile variant with different sizing
 export function MobileNotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
-    notifications, 
-    fetchNotifications 
+    notifications
   } = useNotificationStore();
-
-  useEffect(() => {
-    if (userId) {
-      fetchNotifications(userId);
-      
-      const interval = setInterval(() => {
-        fetchNotifications(userId);
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [userId, fetchNotifications]);
 
   const displayCount = notifications 
     ? notifications.filter(n => !n.isRead).length 
