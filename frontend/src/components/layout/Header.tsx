@@ -169,7 +169,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
       // Poll every 30 seconds  
       const interval = setInterval(() => {
         fetchNotifications(userId);
-      }, 30000);
+      }, 80000);
 
       return () => clearInterval(interval);
     }

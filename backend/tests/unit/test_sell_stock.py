@@ -3,31 +3,53 @@
 
 Fixed version - replace entire file content
 """
-import pytest
+import unittest
+from unittest.mock import Mock, AsyncMock
 from decimal import Decimal
 from datetime import datetime
-from unittest.mock import Mock
+import asyncio
+
 from app.core.entities.portfolio import Portfolio, Holding
 from app.core.entities.stock import Stock
 from app.use_cases.sell_stock import SellStock
+from app.use_cases.get_stock_data import GetStockDataUseCase
+from app.core.interfaces.portfolio_repository import PortfolioRepository
 
-class TestSellStockUseCase:
-    def test_sell_partial_shares_success(self):
-        """Test selling part of a holding"""
-        mock_get_stock_data = Mock()
-        mock_get_stock_data.execute.return_value = Stock(
+
+class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
+    
+    def setUp(self):
+        """Set up test fixtures with Clean Architecture dependencies"""
+        # Mock stock data provider
+        self.mock_get_stock_data = Mock(spec=GetStockDataUseCase)
+        
+        # Mock portfolio repository with async methods
+        self.mock_portfolio_repository = AsyncMock(spec=PortfolioRepository)
+        
+        # Mock notification service (optional)
+        self.mock_notification_service = None
+
+    async def test_sell_partial_shares_success(self):
+        """Test selling partial shares successfully with Clean Architecture"""
+        # Mock stock data
+        self.mock_get_stock_data.execute.return_value = Stock(
             symbol="AAPL",
-            current_price=Decimal("200.00"),  # Selling at $200
+            current_price=Decimal("160.00"),
             name="Apple Inc.",
             sector="Technology",
             market_cap=2500000000000,
             pe_ratio=Decimal("25.5")
         )
         
-        sell_stock_use_case = SellStock(mock_get_stock_data)
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
+        )
         
-        # Portfolio with 10 AAPL shares bought at $150
-        existing_holding = Holding(
+        # Portfolio with AAPL holding
+        holding = Holding(
             symbol="AAPL",
             shares=10,
             average_price=Decimal("150.00")
@@ -35,36 +57,42 @@ class TestSellStockUseCase:
         
         portfolio = Portfolio(
             user_id="user123",
-            cash_balance=Decimal("8500.00"),
-            holdings={"AAPL": existing_holding},
+            cash_balance=Decimal("5000.00"),
+            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
         
-        # Sell 5 shares at $200
-        # ✅ FIX: Use execute_sync instead of execute
-        updated_portfolio = sell_stock_use_case.execute_sync(portfolio, "AAPL", 5)
+        # Sell 5 shares at $160 with await
+        result = await sell_stock_use_case.execute(portfolio, "AAPL", 5)
         
         # Assertions
-        assert updated_portfolio.cash_balance == Decimal("9500.00")  # 8500 + (200 * 5)
-        assert "AAPL" in updated_portfolio.holdings
-        assert updated_portfolio.holdings["AAPL"].shares == 5  # 10 - 5
-        assert updated_portfolio.holdings["AAPL"].average_price == Decimal("150.00")  # Same avg price
+        self.assertEqual(result.user_id, "user123")
+        self.assertEqual(result.cash_balance, Decimal("5800.00"))  # 5000 + (160 * 5)
+        self.assertIn("AAPL", result.holdings)
+        self.assertEqual(result.holdings["AAPL"].shares, 5)  # 10 - 5
+        self.assertEqual(result.holdings["AAPL"].average_price, Decimal("150.00"))  # Unchanged
 
-    def test_sell_all_shares_removes_holding(self):
-        """Test selling all shares removes the holding completely"""
-        mock_get_stock_data = Mock()
-        mock_get_stock_data.execute.return_value = Stock(
+    async def test_sell_all_shares_removes_holding(self):
+        """Test selling all shares removes the holding"""
+        # Mock stock data
+        self.mock_get_stock_data.execute.return_value = Stock(
             symbol="AAPL",
-            current_price=Decimal("200.00"),
+            current_price=Decimal("160.00"),
             name="Apple Inc.",
             sector="Technology",
             market_cap=2500000000000,
             pe_ratio=Decimal("25.5")
         )
         
-        sell_stock_use_case = SellStock(mock_get_stock_data)
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
+        )
         
-        existing_holding = Holding(
+        # Portfolio with AAPL holding
+        holding = Holding(
             symbol="AAPL",
             shares=10,
             average_price=Decimal("150.00")
@@ -72,94 +100,141 @@ class TestSellStockUseCase:
         
         portfolio = Portfolio(
             user_id="user123",
-            cash_balance=Decimal("8500.00"),
-            holdings={"AAPL": existing_holding},
+            cash_balance=Decimal("5000.00"),
+            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
         
-        # Sell all 10 shares
-        # ✅ FIX: Use execute_sync instead of execute
-        updated_portfolio = sell_stock_use_case.execute_sync(portfolio, "AAPL", 10)
+        # Sell all 10 shares with await
+        result = await sell_stock_use_case.execute(portfolio, "AAPL", 10)
         
         # Assertions
-        assert updated_portfolio.cash_balance == Decimal("10500.00")  # 8500 + (200 * 10)
-        assert "AAPL" not in updated_portfolio.holdings  # Holding removed
-        assert len(updated_portfolio.holdings) == 0
+        self.assertEqual(result.cash_balance, Decimal("6600.00"))  # 5000 + (160 * 10)
+        self.assertNotIn("AAPL", result.holdings)  # Holding should be removed
 
-    def test_sell_insufficient_shares_fails(self):
-        """Test selling more shares than owned"""
-        mock_get_stock_data = Mock()
-        sell_stock_use_case = SellStock(mock_get_stock_data)
-        
-        existing_holding = Holding(
+    async def test_sell_insufficient_shares_fails(self):
+        """Test selling more shares than owned should fail"""
+        # Mock stock data
+        self.mock_get_stock_data.execute.return_value = Stock(
             symbol="AAPL",
-            shares=5,  # Only 5 shares
+            current_price=Decimal("160.00"),
+            name="Apple Inc.",
+            sector="Technology",
+            market_cap=2500000000000,
+            pe_ratio=Decimal("25.5")
+        )
+        
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
+        )
+        
+        # Portfolio with only 5 AAPL shares
+        holding = Holding(
+            symbol="AAPL",
+            shares=5,
             average_price=Decimal("150.00")
         )
         
         portfolio = Portfolio(
             user_id="user123",
-            cash_balance=Decimal("9250.00"),
-            holdings={"AAPL": existing_holding},
+            cash_balance=Decimal("5000.00"),
+            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
         
-        with pytest.raises(ValueError, match="Insufficient shares"):
-            # ✅ FIX: Use execute_sync instead of execute
-            sell_stock_use_case.execute_sync(portfolio, "AAPL", 10)  # Try to sell 10
-
-    def test_sell_nonexistent_holding_fails(self):
-        """Test selling stock not in portfolio"""
-        mock_get_stock_data = Mock()
-        sell_stock_use_case = SellStock(mock_get_stock_data)
+        # Try to sell 10 shares (more than owned) with await
+        with self.assertRaises(ValueError) as context:
+            await sell_stock_use_case.execute(portfolio, "AAPL", 10)
         
-        portfolio = Portfolio(
-            user_id="user123",
-            cash_balance=Decimal("10000.00"),
-            holdings={},  # No holdings
-            created_at=datetime.now()
+        self.assertIn("Insufficient shares", str(context.exception))
+
+    async def test_sell_nonexistent_holding_fails(self):
+        """Test selling shares of non-existent holding should fail"""
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
         )
         
-        with pytest.raises(ValueError, match="No holdings found for AAPL"):
-            # ✅ FIX: Use execute_sync instead of execute
-            sell_stock_use_case.execute_sync(portfolio, "AAPL", 5)
-
-    def test_sell_negative_shares_fails(self):
-        """Test selling negative shares"""
-        mock_get_stock_data = Mock()
-        sell_stock_use_case = SellStock(mock_get_stock_data)
-        
+        # Portfolio without AAPL holding
         portfolio = Portfolio(
             user_id="user123",
-            cash_balance=Decimal("10000.00"),
+            cash_balance=Decimal("5000.00"),
             holdings={},
             created_at=datetime.now()
         )
         
-        with pytest.raises(ValueError, match="Shares must be positive"):
-            # ✅ FIX: Use execute_sync instead of execute
-            sell_stock_use_case.execute_sync(portfolio, "AAPL", -5)
+        # Try to sell AAPL shares with await
+        with self.assertRaises(ValueError) as context:
+            await sell_stock_use_case.execute(portfolio, "AAPL", 5)
+        
+        self.assertIn("No holdings found", str(context.exception))
 
-    def test_sell_with_price_fetch_error(self):
-        """Test selling when can't get current price"""
-        mock_get_stock_data = Mock()
-        mock_get_stock_data.execute.side_effect = Exception("API Error")
+    async def test_sell_negative_shares_fails(self):
+        """Test selling negative shares should fail"""
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
+        )
         
-        sell_stock_use_case = SellStock(mock_get_stock_data)
-        
-        existing_holding = Holding(
-            symbol="UNKNOWN",
+        # Portfolio with AAPL holding
+        holding = Holding(
+            symbol="AAPL",
             shares=10,
-            average_price=Decimal("100.00")
+            average_price=Decimal("150.00")
         )
         
         portfolio = Portfolio(
             user_id="user123",
-            cash_balance=Decimal("9000.00"),
-            holdings={"UNKNOWN": existing_holding},
+            cash_balance=Decimal("5000.00"),
+            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
         
-        with pytest.raises(ValueError, match="Could not get current price"):
-            # ✅ FIX: Use execute_sync instead of execute
-            sell_stock_use_case.execute_sync(portfolio, "UNKNOWN", 5)
+        # Try to sell negative shares with await
+        with self.assertRaises(ValueError) as context:
+            await sell_stock_use_case.execute(portfolio, "AAPL", -5)
+        
+        self.assertIn("Shares must be positive", str(context.exception))
+
+    async def test_sell_with_price_fetch_error(self):
+        """Test selling when stock price fetch fails"""
+        # Mock stock data to raise exception
+        self.mock_get_stock_data.execute.side_effect = Exception("API Error")
+        
+        # Create use case with repository
+        sell_stock_use_case = SellStock(
+            self.mock_get_stock_data,
+            self.mock_portfolio_repository,
+            self.mock_notification_service
+        )
+        
+        # Portfolio with AAPL holding
+        holding = Holding(
+            symbol="AAPL",
+            shares=10,
+            average_price=Decimal("150.00")
+        )
+        
+        portfolio = Portfolio(
+            user_id="user123",
+            cash_balance=Decimal("5000.00"),
+            holdings={"AAPL": holding},
+            created_at=datetime.now()
+        )
+        
+        # Should raise ValueError when price fetch fails with await
+        with self.assertRaises(ValueError) as context:
+            await sell_stock_use_case.execute(portfolio, "AAPL", 5)
+        
+        self.assertIn("Could not get current price", str(context.exception))
+
+
+if __name__ == '__main__':
+    unittest.main()

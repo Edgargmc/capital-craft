@@ -1,0 +1,18 @@
+{
+  "user_id": "json_test_user",
+  "cash_balance": "9500.25",
+  "holdings": {
+    "AAPL": {
+      "symbol": "AAPL",
+      "shares": 15,
+      "average_price": "175.80"
+    },
+    "GOOGL": {
+      "symbol": "GOOGL",
+      "shares": 3,
+      "average_price": "2800.50"
+    }
+  },
+  "created_at": "2025-08-10T05:55:17.985989",
+  "updated_at": "2025-08-10T05:55:17.986930"
+}

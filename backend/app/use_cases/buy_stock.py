@@ -10,21 +10,65 @@ from app.core.entities.stock import Stock
 from app.use_cases.get_stock_data import GetStockDataUseCase
 from app.core.entities.notification import NotificationTriggerType
 from app.use_cases.generate_notification import GenerateNotificationUseCase
+from app.core.interfaces.portfolio_repository import PortfolioRepository
+from app.use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
 
 
 class BuyStock:
     """
     Enhanced: Use case to buy stocks and update portfolio + contextual notifications
+    Now follows Clean Architecture - handles portfolio retrieval internally
     """
     
     def __init__(self, 
                  get_stock_data: GetStockDataUseCase,
+                 portfolio_repository: PortfolioRepository,
                  notification_service: Optional[GenerateNotificationUseCase] = None):
         self.get_stock_data = get_stock_data
+        self.portfolio_repository = portfolio_repository
         self.notification_service = notification_service
+        self.get_or_create_portfolio = GetOrCreatePortfolioUseCase(portfolio_repository)
     
+    async def execute_with_user_id(self, user_id: str, symbol: str, shares: int) -> Portfolio:
+        """
+        NEW: Execute buy stock with user_id (Clean Architecture approach)
+        Use case handles portfolio retrieval internally
+        """
+        # Validation
+        if shares <= 0:
+            raise ValueError("Shares must be positive")
+        
+        if not symbol or not symbol.strip():
+            raise ValueError("Stock symbol is required")
+        
+        # Get or create portfolio
+        portfolio = await self.get_or_create_portfolio.execute(user_id)
+        
+        # Get stock data
+        try:
+            stock = self.get_stock_data.execute(symbol.upper().strip())
+        except Exception as e:
+            raise ValueError(f"Could not get stock data for {symbol}: {str(e)}")
+        
+        # Check funds
+        total_cost = stock.current_price * Decimal(shares)
+        if portfolio.cash_balance < total_cost:
+            raise ValueError(f"Insufficient funds. Need ${total_cost}, have ${portfolio.cash_balance}")
+        
+        # Update portfolio
+        updated_portfolio = self._update_portfolio(portfolio, stock, shares, total_cost)
+        
+        # Save updated portfolio
+        await self.portfolio_repository.save_portfolio(updated_portfolio)
+        
+        # Generate notifications
+        if self.notification_service:
+            await self._generate_buy_notifications(user_id, stock, shares, updated_portfolio)
+        
+        return updated_portfolio
+
     async def execute(self, portfolio: Portfolio, symbol: str, shares: int, user_id: str = None) -> Portfolio:
-        """Enhanced: Buy shares with optional educational notifications"""
+        """LEGACY: Buy shares with portfolio object (backward compatibility)"""
         # Validation
         if shares <= 0:
             raise ValueError("Shares must be positive")

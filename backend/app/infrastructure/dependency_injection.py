@@ -21,6 +21,12 @@ from ..use_cases.mark_notification_as_read import MarkNotificationAsReadUseCase
 from ..use_cases.dismiss_notification import DismissNotificationUseCase
 from ..use_cases.mark_all_notifications_as_read import MarkAllNotificationsAsReadUseCase
 
+# Portfolio Repository imports
+from ..core.interfaces.portfolio_repository import PortfolioRepository
+from ..infrastructure.providers.in_memory_portfolio_repository import InMemoryPortfolioRepository
+from ..infrastructure.providers.json_portfolio_repository import JsonPortfolioRepository
+from ..use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
+
 
 class DIContainer:
     """
@@ -42,6 +48,8 @@ class DIContainer:
     
     def _setup_repositories(self) -> None:
         """Setup repository implementations based on environment"""
+        
+        # Setup notification repository
         print(f"USE_MOCK_REPOSITORY: {os.getenv("USE_MOCK_REPOSITORY", "false").lower()}")
         if os.getenv("USE_MOCK_REPOSITORY", "false").lower() == "true":
             print(f"USE_MOCK_REPOSITORY: True")
@@ -50,11 +58,28 @@ class DIContainer:
             print(f"USE_MOCK_REPOSITORY: False")
             data_path = os.getenv("NOTIFICATION_DATA_PATH", "data/notifications.json")
             self._dependencies["notification_repository"] = JSONNotificationRepository(data_path)
+        
+        # Setup portfolio repository (Baby Step 2C: JSON by default, Memory as fallback)
+        portfolio_storage = os.getenv("PORTFOLIO_STORAGE", "json").lower()  # Changed default to JSON
+        
+        if portfolio_storage == "memory":
+            self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
+            print("✅ Portfolio repository initialized: InMemoryPortfolioRepository")
+        else:
+            # Default to JSON persistence
+            data_path = os.getenv("PORTFOLIO_DATA_PATH", "data")
+            self._dependencies["portfolio_repository"] = JsonPortfolioRepository(data_path)
+            print(f"✅ Portfolio repository initialized: JsonPortfolioRepository (path: {data_path})")
     
     @lru_cache(maxsize=None)
     def get_notification_repository(self) -> NotificationRepository:
         """Get notification repository instance (singleton)"""
         return self._dependencies["notification_repository"]
+    
+    @lru_cache(maxsize=None)
+    def get_portfolio_repository(self) -> PortfolioRepository:
+        """Get portfolio repository instance (singleton)"""
+        return self._dependencies["portfolio_repository"]
     
     def get_generate_notification_use_case(self) -> GenerateNotificationUseCase:
         """Factory method for GenerateNotificationUseCase"""
@@ -71,6 +96,10 @@ class DIContainer:
     def get_mark_all_notifications_as_read_use_case(self) -> MarkAllNotificationsAsReadUseCase:
         """Factory method for MarkAllNotificationsAsReadUseCase"""
         return MarkAllNotificationsAsReadUseCase(self.get_notification_repository())
+    
+    def get_get_or_create_portfolio_use_case(self) -> GetOrCreatePortfolioUseCase:
+        """Factory method for GetOrCreatePortfolioUseCase"""
+        return GetOrCreatePortfolioUseCase(self.get_portfolio_repository())
     
     def register_mock_repository(self, mock_repository: NotificationRepository) -> None:
         """Register mock repository for testing"""
@@ -107,6 +136,16 @@ def get_dismiss_notification_use_case() -> DismissNotificationUseCase:
 def get_mark_all_notifications_as_read_use_case() -> MarkAllNotificationsAsReadUseCase:
     """FastAPI dependency for mark all as read use case"""
     return _container.get_mark_all_notifications_as_read_use_case()
+
+
+def get_portfolio_repository() -> PortfolioRepository:
+    """FastAPI dependency for portfolio repository"""
+    return _container.get_portfolio_repository()
+
+
+def get_get_or_create_portfolio_use_case() -> GetOrCreatePortfolioUseCase:
+    """FastAPI dependency for get or create portfolio use case"""
+    return _container.get_get_or_create_portfolio_use_case()
 
 
 def get_container() -> DIContainer:

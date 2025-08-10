@@ -34,6 +34,32 @@ capital-craft/
 
 ## 🚀 Quick Start
 
+### 🌊 Task Runner (Recomendado)
+
+Usa nuestro script Python multiplataforma para ejecutar tareas desde la raíz del proyecto:
+
+```bash
+# Tests
+python run.py test front    # Ejecutar tests del frontend (Next.js)
+python run.py test back     # Ejecutar tests del backend (Python/FastAPI)
+python run.py test all      # Ejecutar todos los tests con resumen
+
+# Servidores de desarrollo
+python run.py dev front     # Iniciar servidor frontend (Next.js)
+python run.py dev back      # Iniciar servidor backend (FastAPI)
+
+# Utilidades
+python run.py status        # Ver estado del proyecto y dependencias
+python run.py --help        # Ver ayuda completa
+```
+
+**Características del Task Runner:**
+- ✅ **Cross-Platform**: Compatible con Windows, macOS y Linux
+- 🎨 **Colores**: Output colorido con emojis
+- 🔍 **Validación**: Verifica dependencias automáticamente
+- ⏱️ **Timing**: Muestra tiempo de ejecución
+- 🏗️ **Clean Architecture**: Siguiendo principios SOLID
+
 ### Backend (FastAPI)
 ```bash
 cd backend

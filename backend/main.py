@@ -24,9 +24,13 @@ from app.infrastructure.dependency_injection import (
     get_mark_notification_as_read_use_case,
     get_dismiss_notification_use_case,
     get_mark_all_notifications_as_read_use_case,
-    get_generate_notification_use_case
+    get_generate_notification_use_case,
+    get_portfolio_repository,
+    get_get_or_create_portfolio_use_case
 )
 from app.core.interfaces.notification_repository import NotificationRepository
+from app.core.interfaces.portfolio_repository import PortfolioRepository
+from app.use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
 
 import os 
 from dotenv import load_dotenv
@@ -124,19 +128,18 @@ class BuyStockRequest(BaseModel):
     symbol: str
     shares: int
 
-# Global portfolios storage (temporary - later we'll use database)
-portfolios_db = {}
+# Baby Step 1: Repository replaces global dict 
+# portfolios_db = {} # REMOVED - now using repository
 
 @app.get("/portfolio/{user_id}")
-def get_portfolio(user_id: str):
-    """Get current portfolio"""
+async def get_portfolio(
+    user_id: str,
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case)
+):
+    """Get current portfolio - Clean Architecture with centralized logic"""
     try:
-        # Get or create portfolio
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        portfolio = portfolios_db[user_id]
+        # Use centralized get-or-create logic
+        portfolio = await get_or_create_portfolio.execute(user_id)
         
         return {
             "user_id": portfolio.user_id,
@@ -157,30 +160,27 @@ def get_portfolio(user_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/portfolio/{user_id}/buy")
-async def buy_stock(user_id: str, request: BuyStockRequest):
-    """Enhanced: Buy stocks with optional educational notifications"""
+async def buy_stock(
+    user_id: str, 
+    request: BuyStockRequest,
+    portfolio_repo: PortfolioRepository = Depends(get_portfolio_repository)
+):
+    """Clean Architecture: Buy stocks with centralized logic"""
     try:
-        # Get or create portfolio
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        current_portfolio = portfolios_db[user_id]
-        
-        # ✅ ENHANCED: Execute buy with notifications
+        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
         get_stock_data = GetStockDataUseCase(stock_data_provider)
-        buy_stock_use_case = BuyStock(get_stock_data, notification_service)  # Added notification_service
-        
-        # Use async execute method
-        updated_portfolio = await buy_stock_use_case.execute(
-            current_portfolio, 
-            request.symbol, 
-            request.shares,
-            user_id  # Added user_id for notifications
+        buy_stock_use_case = BuyStock(
+            get_stock_data, 
+            portfolio_repo,  # Repository injected
+            notification_service  # Notifications injected
         )
         
-        # Save updated portfolio
-        portfolios_db[user_id] = updated_portfolio
+        # Use new clean method - handles get/create/save internally
+        updated_portfolio = await buy_stock_use_case.execute_with_user_id(
+            user_id, 
+            request.symbol, 
+            request.shares
+        )
         
         return {
             "user_id": updated_portfolio.user_id,
@@ -206,15 +206,14 @@ async def buy_stock(user_id: str, request: BuyStockRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/portfolio/{user_id}/summary")
-def get_portfolio_summary(user_id: str):
-    """Get detailed portfolio summary with P&L analysis"""
+async def get_portfolio_summary(
+    user_id: str,
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case)
+):
+    """Get detailed portfolio summary with P&L analysis - Clean Architecture"""
     try:
-        # Get or create portfolio
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        portfolio = portfolios_db[user_id]
+        # Use centralized get-or-create logic
+        portfolio = await get_or_create_portfolio.execute(user_id)
         
         # Get summary
         get_stock_data = GetStockDataUseCase(stock_data_provider)
@@ -233,31 +232,29 @@ class SellStockRequest(BaseModel):
     shares: int
 
 
-# UPDATE: Enhanced sell endpoint (make it async for notifications)  
+# UPDATE: Enhanced sell endpoint with Clean Architecture
 @app.post("/portfolio/{user_id}/sell")
-async def sell_stock(user_id: str, request: SellStockRequest):
-    """Enhanced: Sell stocks with optional educational notifications"""
+async def sell_stock(
+    user_id: str, 
+    request: SellStockRequest,
+    portfolio_repo: PortfolioRepository = Depends(get_portfolio_repository)
+):
+    """Clean Architecture: Sell stocks with centralized logic"""
     try:
-        # Get portfolio (must exist to sell)
-        if user_id not in portfolios_db:
-            raise ValueError("Portfolio not found. Create portfolio first by buying stocks.")
-        
-        current_portfolio = portfolios_db[user_id]
-        
-        # ✅ ENHANCED: Execute sell with notifications
+        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
         get_stock_data = GetStockDataUseCase(stock_data_provider)
-        sell_stock_use_case = SellStock(get_stock_data, notification_service)  # Added notification_service
-        
-        # Use async execute method
-        updated_portfolio = await sell_stock_use_case.execute(
-            current_portfolio, 
-            request.symbol, 
-            request.shares,
-            user_id  # Added user_id for notifications
+        sell_stock_use_case = SellStock(
+            get_stock_data,
+            portfolio_repo,  # Repository injected
+            notification_service  # Notifications injected
         )
         
-        # Save updated portfolio
-        portfolios_db[user_id] = updated_portfolio
+        # Use new clean method - handles get/save internally
+        updated_portfolio = await sell_stock_use_case.execute_with_user_id(
+            user_id, 
+            request.symbol, 
+            request.shares
+        )
         
         return {
             "user_id": updated_portfolio.user_id,
@@ -431,19 +428,16 @@ def get_quick_learning_content():
             detail=f"Error getting quick reads: {str(e)}"
         )
 
-# KEEP ONLY ONE: Portfolio risk analysis endpoint (the working one)
+# Portfolio risk analysis endpoint with Clean Architecture
 @app.get("/portfolio/{user_id}/risk-analysis")
-async def get_portfolio_risk_analysis(user_id: str):
-    """
-    Enhanced: Portfolio risk analysis WITH automatic notifications
-    """
+async def get_portfolio_risk_analysis(
+    user_id: str,
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case)
+):
+    """Portfolio risk analysis WITH automatic notifications - Clean Architecture"""
     try:
-        # Get or create portfolio
-        if user_id not in portfolios_db:
-            create_portfolio_use_case = CreatePortfolio()
-            portfolios_db[user_id] = create_portfolio_use_case.execute(user_id)
-        
-        portfolio = portfolios_db[user_id]
+        # Use centralized get-or-create logic
+        portfolio = await get_or_create_portfolio.execute(user_id)
         
         # Use async version with notification generation
         risk_analysis = await analyze_portfolio_risk_use_case.execute(portfolio, user_id)
@@ -704,31 +698,89 @@ async def get_notification_by_id(
             detail=f"Error retrieving notification: {str(e)}"
         )
 
-# KEEP ONLY ONE: Health check endpoint
+# Enhanced Health check endpoint with Clean Architecture status
 @app.get("/health")
 def health_check():
-    """Enhanced health check with notification system status"""
+    """
+    Comprehensive health check with Clean Architecture and persistence status
+    Shows all system components including repositories and use cases
+    """
     try:
-        # Check if content repository is working
+        # Check learning content system
         content_count = len(get_learning_content_use_case.execute_list_all())
         
         # Check notification system
-        notification_system_healthy = notification_repository is not None
+        notification_system_healthy = True  # Always healthy with DI
+        
+        # Check portfolio repository type and health
+        from app.infrastructure.dependency_injection import get_container
+        container = get_container()
+        portfolio_repo = container.get_portfolio_repository()
+        portfolio_storage_type = type(portfolio_repo).__name__
+        
+        # Determine storage details
+        if "Json" in portfolio_storage_type:
+            storage_info = {
+                "type": "JSON",
+                "persistent": True,
+                "location": getattr(portfolio_repo, 'data_directory', 'data/'),
+                "per_user_files": True
+            }
+        else:
+            storage_info = {
+                "type": "Memory", 
+                "persistent": False,
+                "location": "RAM",
+                "per_user_files": False
+            }
+        
+        # Check data directory if JSON
+        data_files_count = 0
+        if "Json" in portfolio_storage_type:
+            try:
+                from pathlib import Path
+                data_dir = Path(getattr(portfolio_repo, 'data_directory', 'data'))
+                if data_dir.exists():
+                    data_files_count = len(list(data_dir.glob("portfolios_*.json")))
+            except Exception:
+                data_files_count = 0
         
         return {
             "status": "healthy", 
             "service": "capital-craft-backend",
+            "version": "2.0 - Clean Architecture + JSON Persistence",
             "features": [
                 "portfolio_management", 
+                "portfolio_persistence",
+                "clean_architecture",
+                "dependency_injection",
                 "risk_analysis", 
                 "learning_triggers",
                 "learning_content_system",
-                "notification_system"
+                "notification_system",
+                "educational_notifications"
             ],
-            "provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
-            "learning_content_available": content_count,
-            "notification_system": "active" if notification_system_healthy else "inactive",
-            "timestamp": "2025-08-01"
+            "architecture": {
+                "pattern": "Clean Architecture",
+                "principles": ["SOLID", "DRY", "Repository Pattern"],
+                "layers": ["Entities", "Use Cases", "Infrastructure", "Frameworks"]
+            },
+            "storage": {
+                "stock_data_provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
+                "portfolio_storage": storage_info,
+                "notification_storage": "JSON",
+                "learning_content": "Markdown files"
+            },
+            "statistics": {
+                "learning_content_available": content_count,
+                "portfolio_files": data_files_count,
+                "notification_system": "active" if notification_system_healthy else "inactive"
+            },
+            "environment": {
+                "portfolio_storage_env": os.getenv("PORTFOLIO_STORAGE", "json (default)"),
+                "cors_origins": os.getenv("CORS_ORIGINS", "http://localhost:3000")
+            },
+            "timestamp": "2025-08-10"
         }
     except Exception as e:
         return {

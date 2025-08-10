@@ -10,29 +10,51 @@ from app.core.entities.stock import Stock
 from app.use_cases.get_stock_data import GetStockDataUseCase
 from app.core.entities.notification import NotificationTriggerType
 from app.use_cases.generate_notification import GenerateNotificationUseCase
+from app.core.interfaces.portfolio_repository import PortfolioRepository
+from app.use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
 
 
 class SellStock:
     """
     Enhanced: Use case to sell stocks and update portfolio + contextual notifications
-    Keeps your existing structure and adds optional notification service
+    Now follows Clean Architecture - handles portfolio retrieval internally
     """
     
     def __init__(self, 
                  get_stock_data: GetStockDataUseCase,
+                 portfolio_repository: PortfolioRepository,
                  notification_service: Optional[GenerateNotificationUseCase] = None):
         self.get_stock_data = get_stock_data
-        self.notification_service = notification_service  # NEW: Optional dependency
+        self.portfolio_repository = portfolio_repository
+        self.notification_service = notification_service
+        self.get_or_create_portfolio = GetOrCreatePortfolioUseCase(portfolio_repository)
     
+    async def execute_with_user_id(self, user_id: str, symbol: str, shares: int) -> Portfolio:
+        """
+        NEW: Execute sell stock with user_id (Clean Architecture approach)
+        Use case handles portfolio retrieval internally
+        """
+        # Get portfolio (must exist to sell)
+        portfolio = await self.get_or_create_portfolio.execute(user_id)
+        
+        # Calculate P&L before selling for educational context
+        pnl_data = self._calculate_pnl(portfolio, symbol, shares)
+        
+        # Execute sell transaction
+        updated_portfolio = self._execute_sell_transaction(portfolio, symbol, shares)
+        
+        # Save updated portfolio
+        await self.portfolio_repository.save_portfolio(updated_portfolio)
+        
+        # Generate contextual notifications if service available
+        if self.notification_service and pnl_data:
+            await self._generate_sell_notifications(user_id, symbol, shares, pnl_data, updated_portfolio)
+        
+        return updated_portfolio
+
     async def execute(self, portfolio: Portfolio, symbol: str, shares: int, user_id: str = None) -> Portfolio:
         """
-        Enhanced: Sell shares with optional educational notifications
-        
-        Args:
-            portfolio: User's portfolio
-            symbol: Stock symbol
-            shares: Number of shares
-            user_id: Optional user ID for notifications
+        LEGACY: Sell shares with portfolio object (backward compatibility)
         """
         # Calculate P&L before selling for educational context
         pnl_data = self._calculate_pnl(portfolio, symbol, shares) if user_id else None
