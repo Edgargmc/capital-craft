@@ -1,6 +1,6 @@
 'use client'; 
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Shield, Scale, Flame } from 'lucide-react';
 import { useNotificationStore } from '@/lib/stores';
 
@@ -248,10 +248,194 @@ export default function TestPage() {
             </div>
           </div>
         </section>
+
+
+        {/* NotificationBell Test - Capital Craft Core Feature */}
+        <NotificationBellTest />
       </div>
     </div>
   );
 }
+
+// 🔔 NotificationBell Test - Capital Craft Specific
+const NotificationBellTest: React.FC = () => {
+  const [testResult, setTestResult] = useState<'idle' | 'testing' | 'pass' | 'fail'>('idle');
+  const [clickCount, setClickCount] = useState(0);
+  const { notifications, unreadCount, fetchNotifications, isLoading, error } = useNotificationStore();
+
+  const runNotificationBellTest = async () => {
+    console.log('🔔 Running NotificationBell Test...');
+    setTestResult('testing');
+    
+    try {
+      // Test 1: Fetch notifications from your backend
+      console.log('📡 Testing fetchNotifications with test user...');
+      await fetchNotifications('test-user-123');
+      
+      // Small delay to ensure state updates
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Test 2: Validate results
+      console.log('🔍 Validating notification data...');
+      const hasNotifications = Array.isArray(notifications);
+      const hasValidUnreadCount = typeof unreadCount === 'number' && unreadCount >= 0;
+      const noErrors = !error;
+      
+      // Log detailed results
+      console.log(`📊 Test Results:`);
+      console.log(`  - Notifications array: ${hasNotifications ? '✅' : '❌'} (${notifications?.length || 0} items)`);
+      console.log(`  - Unread count: ${hasValidUnreadCount ? '✅' : '❌'} (${unreadCount})`);
+      console.log(`  - No errors: ${noErrors ? '✅' : '❌'} ${error ? `(${error})` : ''}`);
+      
+      // Final validation
+      if (hasNotifications && hasValidUnreadCount && noErrors) {
+        setTestResult('pass');
+        console.log('✅ NotificationBell Test: PASSED');
+      } else {
+        setTestResult('fail');
+        console.log('❌ NotificationBell Test: FAILED');
+      }
+      
+    } catch (testError) {
+      setTestResult('fail');
+      console.error('❌ NotificationBell Test Error:', testError);
+    }
+  };
+
+  const handleMockBellClick = () => {
+    setClickCount(prev => prev + 1);
+    console.log(`🔔 Mock NotificationBell clicked ${clickCount + 1} times`);
+  };
+
+  const resetTest = () => {
+    setTestResult('idle');
+    setClickCount(0);
+    console.log('🔄 NotificationBell Test: RESET');
+  };
+
+  return (
+    <section className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+        <span className="mr-2">🔔</span>
+        NotificationBell Test
+        <span className="ml-2 text-sm font-normal text-gray-500">(Capital Craft Core Feature)</span>
+      </h2>
+
+      {/* Test Status */}
+      <div className="mb-4 p-3 rounded-lg border-2 border-dashed border-gray-200">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-600">Test Status:</span>
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+            testResult === 'idle' ? 'bg-gray-100 text-gray-600' :
+            testResult === 'testing' ? 'bg-yellow-100 text-yellow-700' :
+            testResult === 'pass' ? 'bg-green-100 text-green-700' :
+            'bg-red-100 text-red-700'
+          }`}>
+            {testResult === 'idle' ? '⏳ Ready' :
+             testResult === 'testing' ? '🔄 Testing...' :
+             testResult === 'pass' ? '✅ PASSED' :
+             '❌ FAILED'}
+          </div>
+        </div>
+      </div>
+
+      {/* Capital Craft Notification Data */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="p-4 bg-blue-50 rounded-lg">
+          <div className="text-sm font-medium text-blue-800 mb-2">Total Notifications</div>
+          <div className="text-2xl font-bold text-blue-900">
+            {notifications === null ? '🔄 Loading' : notifications?.length || 0}
+          </div>
+          <div className="text-xs text-blue-600 mt-1">From your backend API</div>
+        </div>
+
+        <div className="p-4 bg-red-50 rounded-lg">
+          <div className="text-sm font-medium text-red-800 mb-2">Unread Count</div>
+          <div className="text-2xl font-bold text-red-900">{unreadCount}</div>
+          <div className="text-xs text-red-600 mt-1">Badge number</div>
+        </div>
+
+        <div className="p-4 bg-purple-50 rounded-lg">
+          <div className="text-sm font-medium text-purple-800 mb-2">Bell Clicks</div>
+          <div className="text-2xl font-bold text-purple-900">{clickCount}</div>
+          <div className="text-xs text-purple-600 mt-1">User interactions</div>
+        </div>
+      </div>
+
+      {/* Mock NotificationBell Component */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div className="text-sm font-medium text-gray-700 mb-3">Mock NotificationBell Component:</div>
+        <div className="flex items-center justify-center space-x-4">
+          <button
+            onClick={handleMockBellClick}
+            className="relative p-3 bg-white border-2 border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-2xl">🔔</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+          
+          {isLoading && (
+            <div className="text-blue-600 text-sm">
+              🔄 Loading notifications...
+            </div>
+          )}
+          
+          {error && (
+            <div className="text-red-600 text-sm">
+              ❌ Error: {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Test Actions */}
+      <div className="flex space-x-3">
+        <button
+          onClick={runNotificationBellTest}
+          disabled={testResult === 'testing'}
+          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50"
+        >
+          🔔 Test NotificationBell
+        </button>
+        
+        <button
+          onClick={resetTest}
+          className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+        >
+          🔄 Reset
+        </button>
+      </div>
+
+      {/* Test Instructions */}
+      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+        <strong>🎯 NotificationBell Test Instructions:</strong>
+        <ol className="mt-1 ml-4 list-decimal space-y-1">
+          <li>Click &quot;Test NotificationBell&quot; button</li>
+          <li>Watch notification data load from your Capital Craft backend</li>
+          <li>Click the mock bell 🔔 to test interactions</li>
+          <li>Check browser console (F12) for detailed logs</li>
+          <li>Verify unread count badge appears correctly</li>
+        </ol>
+      </div>
+
+      {/* What This Tests */}
+      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+        <strong>🔍 What This Tests (Capital Craft Specific):</strong>
+        <ul className="mt-1 ml-4 list-disc space-y-1">
+          <li><strong>Notification System:</strong> Your core feature working end-to-end</li>
+          <li><strong>Clean Architecture:</strong> Use cases and repositories functioning</li>
+          <li><strong>Zustand Store:</strong> useNotificationStore hook integration</li>
+          <li><strong>API Integration:</strong> Frontend ↔ Backend communication</li>
+          <li><strong>Persistent Data:</strong> JSON/Mock repository responses</li>
+        </ul>
+      </div>
+    </section>
+  );
+};
 
 // Añadir este componente DENTRO de tu TestPage existente
 const ZustandStoreTest: React.FC = () => {

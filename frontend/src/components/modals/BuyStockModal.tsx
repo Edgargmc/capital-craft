@@ -81,7 +81,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-md mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
