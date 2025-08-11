@@ -7,7 +7,7 @@ import json  # Add for pretty printing
 from decimal import Decimal
 from app.core.entities.stock import Stock
 from app.core.interfaces.stock_data_provider import StockDataProvider
-from typing import Optional
+from typing import Optional, List
 
 class AlphaVantageProvider(StockDataProvider):
     """Alpha Vantage implementation for real stock data"""
@@ -230,4 +230,69 @@ class AlphaVantageProvider(StockDataProvider):
         except:
             pass
         return None
+    
+    def search_stocks(self, query: str, limit: int = 10) -> List[Stock]:
+        """
+        Search stocks using Alpha Vantage SYMBOL_SEARCH function
+        
+        Alpha Vantage provides a dedicated symbol search API that returns
+        matching symbols with company names - perfect for autocomplete.
+        
+        API Documentation: https://www.alphavantage.co/documentation/#symbolsearch
+        """
+        try:
+            print(f"🔍 ALPHA VANTAGE SYMBOL SEARCH: '{query}' (limit: {limit})")
+            
+            params = {
+                'function': 'SYMBOL_SEARCH',
+                'keywords': query,
+                'apikey': self.api_key
+            }
+            
+            response = requests.get(self.base_url, params=params, timeout=10)
+            data = response.json()
+            
+            # Check for API errors
+            if 'Error Message' in data:
+                print(f"❌ Alpha Vantage search error: {data['Error Message']}")
+                return []
+            
+            if 'Note' in data:
+                print(f"⚠️ Alpha Vantage rate limit: {data['Note']}")
+                return []
+            
+            # Extract search results
+            best_matches = data.get('bestMatches', [])
+            print(f"📊 Found {len(best_matches)} matches from Alpha Vantage")
+            
+            stocks = []
+            for match in best_matches[:limit]:
+                try:
+                    symbol = match.get('1. symbol', '').strip()
+                    name = match.get('2. name', '').strip()
+                    stock_type = match.get('3. type', '').strip()
+                    region = match.get('4. region', '').strip()
+                    
+                    # Filter for US equities only
+                    if region != 'United States' or stock_type != 'Equity':
+                        continue
+                    
+                    # Get full stock data for this symbol
+                    # This is expensive but ensures we return complete Stock objects
+                    full_stock = self.get_stock_data(symbol)
+                    stocks.append(full_stock)
+                    
+                    print(f"✅ Added: {symbol} - {name}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Skipping {symbol}: {str(e)}")
+                    continue
+            
+            print(f"🎯 Returning {len(stocks)} complete stock objects")
+            return stocks[:limit]
+            
+        except Exception as e:
+            print(f"❌ Alpha Vantage search failed: {str(e)}")
+            # Return empty list on error - fallback provider will handle
+            return []
     

@@ -67,7 +67,22 @@ class TaskRunner:
         self.root_dir = Path(__file__).parent
         self.frontend_dir = self.root_dir / "frontend"
         self.backend_dir = self.root_dir / "backend"
+        self.python_cmd = self._detect_python_command()
         Colors.disable_on_windows()
+        
+    def _detect_python_command(self) -> str:
+        """Detect the correct Python command (python3, python, py)"""
+        commands = ["python3", "python", "py"]
+        
+        for cmd in commands:
+            try:
+                result = subprocess.run([cmd, "--version"], capture_output=True, text=True)
+                if result.returncode == 0:
+                    return cmd
+            except FileNotFoundError:
+                continue
+                
+        return "python"  # Fallback
         
     def _print_header(self, title: str, emoji: str = "🌊"):
         """Print formatted header"""
@@ -159,7 +174,7 @@ class TaskRunner:
             return False
             
         return self._run_command(
-            ["python", "run_tests.py"],
+            [self.python_cmd, "run_tests.py"],
             self.backend_dir,
             "Backend test suite"
         )
@@ -214,7 +229,7 @@ class TaskRunner:
         self._print_header("Backend Dev Server", "🐍")
         
         return self._run_command(
-            ["python", "main.py"],
+            [self.python_cmd, "main.py"],
             self.backend_dir,
             "Backend development server"
         )

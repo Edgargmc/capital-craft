@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Search } from 'lucide-react';
+import { X } from 'lucide-react';
 import { CapitalCraftAPI, Stock } from '@/lib/api';
+import { StockAutocomplete } from '@/components/common/StockAutocomplete';
 
 interface BuyStockModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   const [stockData, setStockData] = useState<Stock | null>(null);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<{symbol: string; name: string; sector: string} | null>(null);
   const [error, setError] = useState('');
 
   // Search for stock when symbol changes
@@ -63,6 +65,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
       setSymbol('');
       setShares('');
       setStockData(null);
+      setSelectedStock(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to buy stock');
     } finally {
@@ -74,8 +77,22 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
     setSymbol('');
     setShares('');
     setStockData(null);
+    setSelectedStock(null);
     setError('');
     onClose();
+  };
+
+  const handleStockSelect = (stock: {symbol: string; name: string; sector: string}) => {
+    setSelectedStock(stock);
+    setSymbol(stock.symbol);
+  };
+
+  const handleClearStock = () => {
+    setSelectedStock(null);
+    setSymbol('');
+    setStockData(null);
+    setShares(''); // Clear shares when stock is cleared
+    setError('');
   };
 
   if (!isOpen) return null;
@@ -101,34 +118,40 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Stock Symbol
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-900" />
-              <input
-                type="text"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                placeholder="AAPL, MSFT, TSLA..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-              />
-              {searching && (
-                <div className="absolute right-3 top-3">
-                  <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                </div>
-              )}
-            </div>
+            <StockAutocomplete
+              value={symbol}
+              onSelect={handleStockSelect}
+              onChange={setSymbol}
+              onClear={handleClearStock}
+              placeholder="Search AAPL, Microsoft, Tesla..."
+              loading={searching}
+            />
           </div>
 
           {/* Stock Info */}
-          {stockData && (
+          {(stockData || selectedStock) && (
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900">{stockData?.symbol || ''}</h3>
-                <span className="text-green-600 font-semibold">
-                ${stockData?.current_price?.toFixed(2) || '0.00'}
-                </span>
+                <h3 className="font-semibold text-gray-900">
+                  {stockData?.symbol || selectedStock?.symbol || ''}
+                </h3>
+                {stockData?.current_price && (
+                  <span className="text-green-600 font-semibold">
+                    ${stockData.current_price.toFixed(2)}
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-gray-600">{stockData?.name || ''}</p>
-              <p className="text-xs text-gray-500 mt-1">{stockData?.sector || ''}</p>
+              <p className="text-sm text-gray-600">
+                {stockData?.name || selectedStock?.name || ''}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {stockData?.sector || selectedStock?.sector || ''}
+              </p>
+              {selectedStock && !stockData && (
+                <p className="text-xs text-blue-600 mt-2">
+                  Loading current price...
+                </p>
+              )}
             </div>
           )}
 
@@ -141,10 +164,20 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
               type="number"
               value={shares}
               onChange={(e) => setShares(e.target.value)}
-              placeholder="10"
+              placeholder={selectedStock ? "10" : "Select a stock first"}
               min="1"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              disabled={!selectedStock}
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 ${
+                selectedStock 
+                  ? 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500' 
+                  : 'bg-gray-50 cursor-not-allowed text-gray-500'
+              }`}
             />
+            {!selectedStock && (
+              <p className="text-xs text-gray-500 mt-1">
+                Please select a valid stock before entering the number of shares
+              </p>
+            )}
           </div>
 
           {/* Order Summary */}

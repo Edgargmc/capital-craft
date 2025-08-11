@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from app.core.entities.stock import Stock
 from app.core.interfaces.stock_data_provider import StockDataProvider
 
@@ -41,3 +41,28 @@ class CachedProvider(StockDataProvider):
         ]
         for key in expired_keys:
             del self._cache[key]
+    
+    def search_stocks(self, query: str, limit: int = 10) -> List[Stock]:
+        """
+        Search stocks with caching - cache search results temporarily
+        
+        Note: Search results are cached for shorter time (5 minutes)
+        since they may change more frequently than individual stock data.
+        """
+        cache_key = f"search:{query.lower()}:{limit}"
+        current_time = time.time()
+        search_cache_ttl = 5 * 60  # 5 minutes for search results
+        
+        # Check cache for search results
+        if cache_key in self._cache:
+            cached_results, cached_time = self._cache[cache_key]
+            if current_time - cached_time < search_cache_ttl:
+                return cached_results
+        
+        # Cache miss - perform search
+        results = self.provider.search_stocks(query, limit)
+        
+        # Cache the search results
+        self._cache[cache_key] = (results, current_time)
+        
+        return results

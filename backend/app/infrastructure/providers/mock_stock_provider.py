@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import List
 from app.core.entities.stock import Stock
 from app.core.interfaces.stock_data_provider import StockDataProvider
 import random
@@ -340,3 +341,66 @@ class MockStockDataProvider(StockDataProvider):
             analyst_rating_hold=safe_int(stock_data["analyst_rating_hold"]),
             analyst_rating_sell=safe_int(stock_data["analyst_rating_sell"])
         )
+    
+    def search_stocks(self, query: str, limit: int = 10) -> List[Stock]:
+        """
+        Search stocks by symbol or company name in mock database
+        
+        Args:
+            query: Search query (case-insensitive)
+            limit: Maximum number of results to return
+            
+        Returns:
+            List[Stock]: Sorted list of matching stocks (exact symbol matches first)
+            
+        Business Logic:
+        - Exact symbol matches appear first
+        - Partial symbol matches appear second  
+        - Company name matches appear third
+        - Sector matches appear last
+        """
+        query_lower = query.lower().strip()
+        
+        if not query_lower:
+            return []
+        
+        matches = []
+        
+        # Priority 1: Exact symbol matches
+        for symbol, data in self._stocks.items():
+            if symbol.lower() == query_lower:
+                matches.append((symbol, data, 1))  # Priority 1
+        
+        # Priority 2: Partial symbol matches (symbol starts with query)
+        for symbol, data in self._stocks.items():
+            if symbol.lower().startswith(query_lower) and symbol.lower() != query_lower:
+                matches.append((symbol, data, 2))  # Priority 2
+        
+        # Priority 3: Company name matches (contains query)
+        for symbol, data in self._stocks.items():
+            if query_lower in data["name"].lower():
+                # Avoid duplicates from previous matches
+                if not any(match[0] == symbol for match in matches):
+                    matches.append((symbol, data, 3))  # Priority 3
+        
+        # Priority 4: Sector matches
+        for symbol, data in self._stocks.items():
+            if query_lower in data["sector"].lower():
+                # Avoid duplicates from previous matches
+                if not any(match[0] == symbol for match in matches):
+                    matches.append((symbol, data, 4))  # Priority 4
+        
+        # Sort by priority (lower number = higher priority)
+        matches.sort(key=lambda x: x[2])
+        
+        # Convert to Stock objects (limit results)
+        result_stocks = []
+        for symbol, stock_data, _ in matches[:limit]:
+            try:
+                stock = self.get_stock_data(symbol)
+                result_stocks.append(stock)
+            except Exception:
+                # Skip stocks that fail to load
+                continue
+        
+        return result_stocks

@@ -5,6 +5,7 @@ from decimal import Decimal
 from app.infrastructure.providers.provider_factory import ProviderFactory
 from app.use_cases.get_portfolio_summary import GetPortfolioSummary
 from app.use_cases.get_stock_data import GetStockDataUseCase
+from app.use_cases.search_stocks import SearchStocksUseCase
 from app.use_cases.create_portfolio import CreatePortfolio
 from app.use_cases.buy_stock import BuyStock 
 from pydantic import BaseModel
@@ -123,6 +124,51 @@ def get_stock(symbol: str):
         }
     except ValueError as e:
         return {"error": str(e)}
+
+@app.get("/stocks/search")
+def search_stocks(q: str = "", limit: int = 10):
+    """
+    Search stocks by symbol or company name
+    
+    Parameters:
+    - q: Search query (symbol or company name)
+    - limit: Maximum number of results (default: 10, max: 50)
+    
+    Returns: List of stocks with basic info (symbol, name, sector, current_price)
+    """
+    try:
+        # Input validation
+        if not q or not q.strip():
+            return {"results": [], "query": q, "count": 0, "message": "Empty search query"}
+        
+        if limit < 1 or limit > 50:
+            return {"error": "Limit must be between 1 and 50"}
+        
+        # Execute search using SearchStocksUseCase
+        search_use_case = SearchStocksUseCase(stock_data_provider)
+        stocks = search_use_case.execute(q.strip(), limit)
+        
+        # Convert to simplified response format for autocomplete
+        results = []
+        for stock in stocks:
+            results.append({
+                "symbol": stock.symbol,
+                "name": stock.name,
+                "sector": stock.sector,
+                "current_price": float(stock.current_price) if stock.current_price else None
+            })
+        
+        return {
+            "results": results,
+            "query": q.strip(),
+            "count": len(results),
+            "message": f"Found {len(results)} stocks matching '{q.strip()}'"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 class BuyStockRequest(BaseModel):
     symbol: str

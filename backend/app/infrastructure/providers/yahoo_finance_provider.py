@@ -2,6 +2,7 @@ import yfinance as yf
 import time
 from random import uniform
 from decimal import Decimal
+from typing import List
 from app.core.entities.stock import Stock
 from app.core.interfaces.stock_data_provider import StockDataProvider
 
@@ -68,4 +69,51 @@ class YahooFinanceProvider(StockDataProvider):
                     raise ValueError(f"Stock symbol '{symbol}' not found. Please check the symbol.")
                 else:
                     raise ValueError(f"Unable to fetch data for {symbol}. Yahoo Finance may be experiencing issues.")
+    
+    def search_stocks(self, query: str, limit: int = 10) -> List[Stock]:
+        """
+        Search stocks using Yahoo Finance - Limited implementation
+        
+        Note: Yahoo Finance doesn't provide a direct search API, so this implementation
+        tries common symbols first, then falls back to predefined list.
+        
+        For production use, consider using a dedicated stock search API like
+        Alpha Vantage's SYMBOL_SEARCH function.
+        """
+        # Common stock symbols to try for partial matching
+        common_symbols = [
+            "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "TSLA", "META", "NVDA",
+            "BRK-B", "UNH", "JNJ", "XOM", "JPM", "PG", "V", "HD", "CVX", "MA",
+            "BAC", "ABBV", "LLY", "WMT", "AVGO", "KO", "MRK", "COST", "PEP",
+            "NFLX", "TMO", "VZ", "ADBE", "CRM", "ACN", "MCD", "ABT", "CSCO",
+            "WFC", "LIN", "DHR", "NEE", "AMD", "TXN", "PM", "COP", "RTX",
+            "ORCL", "DIS", "BMY", "SPGI", "QCOM", "T", "UNP", "IBM", "GE"
+        ]
+        
+        query_upper = query.upper().strip()
+        matches = []
+        
+        # Try exact matches first
+        if query_upper in common_symbols:
+            try:
+                stock = self.get_stock_data(query_upper)
+                matches.append(stock)
+            except Exception:
+                pass
+        
+        # Try partial matches
+        for symbol in common_symbols:
+            if len(matches) >= limit:
+                break
+                
+            if (symbol.startswith(query_upper) and 
+                symbol != query_upper and 
+                not any(s.symbol == symbol for s in matches)):
+                try:
+                    stock = self.get_stock_data(symbol)
+                    matches.append(stock)
+                except Exception:
+                    continue
+        
+        return matches[:limit]
 

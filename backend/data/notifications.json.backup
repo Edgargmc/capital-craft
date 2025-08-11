@@ -7,7 +7,7 @@
       "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
       "type": "education",
       "priority": "medium",
-      "isRead": false,
+      "isRead": true,
       "dismissed": false,
       "createdAt": "2025-08-10T00:11:43.640367",
       "sentAt": null,
@@ -29,7 +29,7 @@
       "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
       "type": "education",
       "priority": "medium",
-      "isRead": false,
+      "isRead": true,
       "dismissed": false,
       "createdAt": "2025-08-10T00:11:43.640766",
       "sentAt": null,
@@ -42,6 +42,68 @@
         "content_slug": "volatility_basics",
         "beta": 2.31,
         "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "1c9b558b-f7dd-40b7-b0a3-d1da0a1ced98",
+      "userId": "demo",
+      "title": "\u2696\ufe0f Portfolio Risk: HIGH",
+      "message": "Your portfolio risk changed to HIGH. Discover what this means for your strategy.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-10T23:08:23.700795",
+      "sentAt": null,
+      "deepLink": "/learning/content/risk_management?level=HIGH",
+      "triggerType": "risk_change",
+      "triggerData": {
+        "new_risk_level": "HIGH",
+        "volatility_score": 1.564059779631095,
+        "risk_level_changed": true
+      },
+      "status": "pending"
+    },
+    {
+      "id": "f1a4b20a-c738-4426-a908-92eec046e4df",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Advanced Volatility Management",
+      "message": "Based on your portfolio, now is a great time to understand advanced strategies for managing high-risk, high-reward portfolios.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-10T23:08:23.701642",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_advanced",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Advanced Volatility Management",
+        "topic_description": "advanced strategies for managing high-risk, high-reward portfolios",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_advanced"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "5994f77e-4f96-4842-8e18-45700a1b9b61",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Market Volatility",
+      "message": "Based on your portfolio, now is a great time to understand understanding how market ups and downs affect your investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-10T23:41:05.337346",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Market Volatility",
+        "topic_description": "understanding how market ups and downs affect your investments",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics"
       },
       "status": "pending"
     }

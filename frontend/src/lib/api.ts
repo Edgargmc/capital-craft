@@ -1,7 +1,30 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 
-  (process.env.NODE_ENV === 'production' 
-    ? 'https://capital-craft-production.up.railway.app'
-    : 'http://localhost:8000');
+// Dynamic API base depending on environment and client
+const getApiBase = () => {
+  // If explicitly set, use it
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+  
+  // Production
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://capital-craft-production.up.railway.app';
+  }
+  
+  // Development: check if we're on mobile/network
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // If accessing via IP address (mobile), use same IP for API
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `http://${hostname}:8000`;
+    }
+  }
+  
+  // Default to localhost (desktop development)
+  return 'http://localhost:8000';
+};
+
+const API_BASE = getApiBase();
 
   export interface Stock {
     symbol: string;
@@ -151,5 +174,14 @@ static async getLearningContent(trigger: string): Promise<LearningContent> {
   const result = await response.json();
   return result.data;
 }
+
+  static async searchStocks(query: string, limit: number = 10): Promise<Stock[]> {
+    const response = await fetch(`${API_BASE}/stocks/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!response.ok) {
+      throw new Error('Failed to search stocks');
+    }
+    const result = await response.json();
+    return result.results || [];
+  }
 }
 

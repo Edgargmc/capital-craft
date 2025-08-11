@@ -31,4 +31,31 @@ class FallbackProvider(StockDataProvider):
             raise last_error
         else:
             raise ValueError(f"All providers failed for symbol {symbol}")
+    
+    def search_stocks(self, query: str, limit: int = 10) -> List[Stock]:
+        """
+        Try search on providers in order, return first successful result
+        
+        This is especially useful since Alpha Vantage has the best search API,
+        Yahoo Finance has limited search, and Mock always works for development.
+        """
+        for i, provider in enumerate(self.providers):
+            try:
+                results = provider.search_stocks(query, limit)
+                if results:  # Return first non-empty result
+                    provider_name = provider.__class__.__name__
+                    print(f"✅ Search successful with {provider_name}: {len(results)} results")
+                    return results
+                else:
+                    provider_name = provider.__class__.__name__
+                    print(f"⚠️ {provider_name} returned empty results for '{query}'")
+                    
+            except Exception as e:
+                provider_name = provider.__class__.__name__
+                print(f"❌ {provider_name} search failed for '{query}': {str(e)}")
+                continue
+        
+        # All providers failed or returned empty results
+        print(f"🚨 All providers failed/empty for search: '{query}'")
+        return []
 
