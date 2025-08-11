@@ -147,6 +147,31 @@ class TaskRunner:
             self._print_error(f"Unexpected error: {str(e)}")
             return False
     
+    def _install_backend_dependencies(self):
+        """Install missing backend dependencies"""
+        self._print_info("Checking backend dependencies...")
+        
+        # Check if httpx is installed
+        try:
+            import subprocess
+            result = subprocess.run(
+                [self.python_cmd, "-c", "import httpx"],
+                cwd=self.backend_dir,
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                self._print_warning("Missing httpx dependency, installing...")
+                install_cmd = [self.python_cmd, "-m", "pip", "install", "httpx==0.28.1"]
+                if not self._run_command(install_cmd, self.backend_dir, "Installing httpx"):
+                    return False
+                self._print_success("httpx installed successfully!")
+        except Exception as e:
+            self._print_error(f"Error checking dependencies: {e}")
+            return False
+        
+        return True
+
     def test_frontend(self) -> bool:
         """Run frontend tests (Next.js/React)"""
         self._print_header("Frontend Tests", "🎨")
@@ -167,17 +192,44 @@ class TaskRunner:
         """Run backend tests (Python/FastAPI)"""
         self._print_header("Backend Tests", "🐍")
         
-        # Check if run_tests.py exists
-        test_script = self.backend_dir / "run_tests.py"
-        if not test_script.exists():
-            self._print_error("Backend test script not found")
+        if not self.backend_dir.exists():
+            self._print_error(f"Backend directory not found: {self.backend_dir}")
             return False
             
-        return self._run_command(
-            [self.python_cmd, "run_tests.py"],
-            self.backend_dir,
-            "Backend test suite"
-        )
+        # Install missing dependencies first
+        if not self._install_backend_dependencies():
+            self._print_error("Failed to install backend dependencies")
+            return False
+        
+        # Run unit tests
+        self._print_info("Running: Unit tests")
+        unit_cmd = [self.python_cmd, "-m", "pytest", "tests/unit", "-v"]
+        unit_success = self._run_command(unit_cmd, self.backend_dir, "Unit tests")
+        
+        # Run integration tests
+        self._print_info("Running: Integration tests")
+        integration_cmd = [self.python_cmd, "-m", "pytest", "tests/integration", "-v"]
+        integration_success = self._run_command(integration_cmd, self.backend_dir, "Integration tests")
+        
+        # Summary
+        self._print_header("Test Results Summary", "📊")
+        if unit_success:
+            self._print_success("   unit_tests: ✅ PASSED")
+        else:
+            self._print_error("   unit_tests: ❌ FAILED")
+            
+        if integration_success:
+            self._print_success("   integration_tests: ✅ PASSED")
+        else:
+            self._print_error("   integration_tests: ❌ FAILED")
+        
+        overall_success = unit_success and integration_success
+        if overall_success:
+            self._print_success("🎉 All backend tests passed!")
+        else:
+            self._print_warning("⚠️  Some tests failed. Check output above for details.")
+            
+        return overall_success
     
     def test_all(self) -> bool:
         """Run all tests (backend + frontend)"""
