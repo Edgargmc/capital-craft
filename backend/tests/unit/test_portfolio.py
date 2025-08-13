@@ -9,19 +9,17 @@ class TestPortfolioEntity:
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("10000.00"),
-            holdings={},
             created_at=datetime.now()
         )
         assert portfolio.user_id == "user123"
         assert portfolio.cash_balance == Decimal("10000.00")
-        assert len(portfolio.holdings) == 0
+        assert len(portfolio.get_holdings()) == 0
 
     def test_negative_cash_raises_error(self):
         with pytest.raises(ValueError, match="Cash balance cannot be negative"):
             Portfolio(
                 user_id="user123",
                 cash_balance=Decimal("-100.00"),
-                holdings={},
                 created_at=datetime.now()
             )
 
@@ -30,7 +28,6 @@ class TestPortfolioEntity:
             Portfolio(
                 user_id="",
                 cash_balance=Decimal("10000.00"),
-                holdings={},
                 created_at=datetime.now()
             )
 
@@ -41,7 +38,7 @@ class TestCreatePortfolioUseCase:
         
         assert portfolio.user_id == "user123"
         assert portfolio.cash_balance == Decimal("10000.00")
-        assert len(portfolio.holdings) == 0
+        assert len(portfolio.get_holdings()) == 0
         assert isinstance(portfolio.created_at, datetime)
 
     def test_create_portfolio_empty_user_id_fails(self):

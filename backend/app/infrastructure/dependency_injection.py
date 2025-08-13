@@ -12,6 +12,7 @@ Dependency Injection Container for Notification System
 import os
 from typing import Dict, Any
 from functools import lru_cache
+from fastapi import Depends
 
 from ..core.interfaces.notification_repository import NotificationRepository
 from ..infrastructure.json_notification_repository import JSONNotificationRepository
@@ -26,6 +27,13 @@ from ..core.interfaces.portfolio_repository import PortfolioRepository
 from ..infrastructure.providers.in_memory_portfolio_repository import InMemoryPortfolioRepository
 from ..infrastructure.providers.json_portfolio_repository import JsonPortfolioRepository
 from ..use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
+
+# User Repository imports
+from ..core.interfaces.user_repository import UserRepository
+from ..infrastructure.repositories.postgres_user_repository import PostgresUserRepository
+from ..use_cases.create_user import CreateUserUseCase
+from ..use_cases.authenticate_user import AuthenticateUserUseCase
+from ..infrastructure.database import get_db_session
 
 
 class DIContainer:
@@ -151,3 +159,24 @@ def get_get_or_create_portfolio_use_case() -> GetOrCreatePortfolioUseCase:
 def get_container() -> DIContainer:
     """Get the global container instance (for testing)"""
     return _container
+
+
+# User authentication dependencies (using dependency injection)
+async def get_user_repository(session = Depends(get_db_session)) -> UserRepository:
+    """FastAPI dependency for user repository"""
+    return PostgresUserRepository(session)
+
+
+async def get_create_user_use_case(
+    user_repository: UserRepository = Depends(get_user_repository),
+    portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
+) -> CreateUserUseCase:
+    """FastAPI dependency for create user use case"""
+    return CreateUserUseCase(user_repository, portfolio_repository)
+
+
+async def get_authenticate_user_use_case(
+    user_repository: UserRepository = Depends(get_user_repository)
+) -> AuthenticateUserUseCase:
+    """FastAPI dependency for authenticate user use case"""
+    return AuthenticateUserUseCase(user_repository)

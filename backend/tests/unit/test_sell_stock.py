@@ -58,9 +58,9 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         # Sell 5 shares at $160 with await
         result = await sell_stock_use_case.execute(portfolio, "AAPL", 5)
@@ -68,9 +68,14 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         # Assertions
         self.assertEqual(result.user_id, "user123")
         self.assertEqual(result.cash_balance, Decimal("5800.00"))  # 5000 + (160 * 5)
-        self.assertIn("AAPL", result.holdings)
-        self.assertEqual(result.holdings["AAPL"].shares, 5)  # 10 - 5
-        self.assertEqual(result.holdings["AAPL"].average_price, Decimal("150.00"))  # Unchanged
+        
+        # Check holdings using new API
+        holdings = result.get_holdings()
+        self.assertEqual(len(holdings), 1)
+        aapl_holding = holdings[0]
+        self.assertEqual(aapl_holding.symbol, "AAPL")
+        self.assertEqual(aapl_holding.shares, 5)  # 10 - 5
+        self.assertEqual(aapl_holding.average_price, Decimal("150.00"))  # Unchanged
 
     async def test_sell_all_shares_removes_holding(self):
         """Test selling all shares removes the holding"""
@@ -101,16 +106,19 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         # Sell all 10 shares with await
         result = await sell_stock_use_case.execute(portfolio, "AAPL", 10)
         
         # Assertions
         self.assertEqual(result.cash_balance, Decimal("6600.00"))  # 5000 + (160 * 10)
-        self.assertNotIn("AAPL", result.holdings)  # Holding should be removed
+        
+        # Check that holding was removed using new API
+        holdings = result.get_holdings()
+        self.assertEqual(len(holdings), 0)  # Should be empty
 
     async def test_sell_insufficient_shares_fails(self):
         """Test selling more shares than owned should fail"""
@@ -141,9 +149,9 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         # Try to sell 10 shares (more than owned) with await
         with self.assertRaises(ValueError) as context:
@@ -164,8 +172,7 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={},
-            created_at=datetime.now()
+                        created_at=datetime.now()
         )
         
         # Try to sell AAPL shares with await
@@ -193,8 +200,7 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={"AAPL": holding},
-            created_at=datetime.now()
+                        created_at=datetime.now()
         )
         
         # Try to sell negative shares with await
@@ -225,9 +231,9 @@ class TestSellStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("5000.00"),
-            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         # Should raise ValueError when price fetch fails with await
         with self.assertRaises(ValueError) as context:

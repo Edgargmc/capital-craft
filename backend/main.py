@@ -33,6 +33,9 @@ from app.core.interfaces.notification_repository import NotificationRepository
 from app.core.interfaces.portfolio_repository import PortfolioRepository
 from app.use_cases.get_or_create_portfolio import GetOrCreatePortfolioUseCase
 
+# Authentication system imports
+from app.api.auth import auth_router
+
 import os 
 from dotenv import load_dotenv
 
@@ -66,6 +69,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include authentication router
+app.include_router(auth_router)
 
 @app.get("/")
 def home():

@@ -19,8 +19,9 @@ class GetPortfolioSummary:
         holdings_summary = {}
         
         # Calculate each holding
-        for symbol, holding in portfolio.holdings.items():
+        for holding in portfolio.get_holdings():
             try:
+                symbol = holding.symbol
                 # Get current stock price
                 current_stock = self.get_stock_data.execute(symbol)
                 current_price = current_stock.current_price
@@ -79,7 +80,7 @@ class GetPortfolioSummary:
             "total_portfolio_value": float(total_portfolio_value),
             "total_unrealized_pnl": float(total_unrealized_pnl),
             "total_unrealized_pnl_percent": float(total_unrealized_pnl_percent),
-            "holdings_count": len(portfolio.holdings),
+            "holdings_count": len(portfolio.get_holdings()),
             "holdings": holdings_summary,
             "created_at": portfolio.created_at.isoformat()
         }

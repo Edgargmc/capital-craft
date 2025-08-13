@@ -52,7 +52,6 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("10000.00"),
-            holdings={},
             created_at=datetime.now()
         )
         
@@ -62,9 +61,14 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         # Assertions
         self.assertEqual(result.user_id, "user123")
         self.assertEqual(result.cash_balance, Decimal("8500.00"))  # 10000 - (150 * 10)
-        self.assertIn("AAPL", result.holdings)
-        self.assertEqual(result.holdings["AAPL"].shares, 10)
-        self.assertEqual(result.holdings["AAPL"].average_price, Decimal("150.00"))
+        
+        # Check holdings using new API (but this will fail due to portfolio.holdings bug)
+        holdings = result.get_holdings()
+        self.assertEqual(len(holdings), 1)
+        aapl_holding = holdings[0]
+        self.assertEqual(aapl_holding.symbol, "AAPL")
+        self.assertEqual(aapl_holding.shares, 10)
+        self.assertEqual(aapl_holding.average_price, Decimal("150.00"))
 
     async def test_buy_stock_insufficient_funds(self):
         """Test buying stock with insufficient funds"""
@@ -89,7 +93,6 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("100.00"),  # Not enough for 10 shares at $150
-            holdings={},
             created_at=datetime.now()
         )
         
@@ -111,7 +114,6 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("10000.00"),
-            holdings={},
             created_at=datetime.now()
         )
         
@@ -150,9 +152,9 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("10000.00"),
-            holdings={"AAPL": existing_holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([existing_holding])
         
         # Buy 5 more shares at $160 with await
         result = await buy_stock_use_case.execute(portfolio, "AAPL", 5)
@@ -160,8 +162,12 @@ class TestBuyStockUseCase(unittest.IsolatedAsyncioTestCase):
         # Should average: (5 * 150 + 5 * 160) / 10 = 155
         expected_avg_price = Decimal("155.00")
         
-        self.assertEqual(result.holdings["AAPL"].shares, 10)
-        self.assertEqual(result.holdings["AAPL"].average_price, expected_avg_price)
+        # Check with new API (will fail due to portfolio.holdings bug in use case)
+        holdings = result.get_holdings()
+        aapl_holding = next((h for h in holdings if h.symbol == "AAPL"), None)
+        self.assertIsNotNone(aapl_holding)
+        self.assertEqual(aapl_holding.shares, 10)
+        self.assertEqual(aapl_holding.average_price, expected_avg_price)
         self.assertEqual(result.cash_balance, Decimal("9200.00"))  # 10000 - (160 * 5)
 
 

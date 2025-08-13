@@ -15,7 +15,6 @@ class TestGetPortfolioSummary:
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("10000.00"),
-            holdings={},
             created_at=datetime.now()
         )
         
@@ -52,9 +51,9 @@ class TestGetPortfolioSummary:
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("8500.00"),  # 10000 - (150 * 10)
-            holdings={"AAPL": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         result = summary_use_case.execute(portfolio)
         
@@ -100,9 +99,9 @@ class TestGetPortfolioSummary:
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("9250.00"),  # 10000 - (150 * 5)
-            holdings={"TSLA": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         result = summary_use_case.execute(portfolio)
         
@@ -129,9 +128,9 @@ class TestGetPortfolioSummary:
         portfolio = Portfolio(
             user_id="user123",
             cash_balance=Decimal("9000.00"),
-            holdings={"UNKNOWN": holding},
             created_at=datetime.now()
         )
+        portfolio.set_holdings([holding])
         
         result = summary_use_case.execute(portfolio)
         

@@ -9,7 +9,7 @@ import os
 
 
 def install_pytest_if_needed():
-    """Install pytest if not available"""
+    """Install pytest and required testing dependencies if not available"""
     try:
         import pytest
         print("✅ pytest is available")
@@ -17,6 +17,16 @@ def install_pytest_if_needed():
         print("📦 Installing pytest...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "pytest", "pytest-asyncio"])
         print("✅ pytest installed")
+    
+    # Check for additional testing dependencies
+    try:
+        import httpx
+        import pytest_postgresql
+        print("✅ Testing dependencies available")
+    except ImportError:
+        print("📦 Installing additional testing dependencies...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "httpx", "pytest-postgresql"])
+        print("✅ Testing dependencies installed")
 
 
 def run_unit_tests():
@@ -28,7 +38,7 @@ def run_unit_tests():
         result = subprocess.run([
             sys.executable, "-m", "pytest", 
             "tests/unit/",
-            "-v", "--tb=short", "-m", "unit or not integration"
+            "-v", "--tb=short"
         ], capture_output=True, text=True)
         
         print(result.stdout)
@@ -51,7 +61,7 @@ def run_integration_tests():
         result = subprocess.run([
             sys.executable, "-m", "pytest", 
             "tests/integration/",
-            "-v", "--tb=short", "-m", "integration or not unit"
+            "-v", "--tb=short"
         ], capture_output=True, text=True)
         
         print(result.stdout)
@@ -111,6 +121,33 @@ def run_specific_category(category):
         return False
 
 
+def run_auth_tests_only():
+    """Run only authentication-related tests"""
+    print("\n🔐 Running Authentication Tests Only...")
+    print("=" * 50)
+    
+    try:
+        result = subprocess.run([
+            sys.executable, "-m", "pytest", 
+            "tests/unit/test_jwt_manager.py",
+            "tests/unit/test_user_entity.py", 
+            "tests/integration/test_user_repository.py",
+            "tests/integration/test_auth_api.py",
+            "tests/integration/test_auth_flow_e2e.py",
+            "-v", "--tb=short"
+        ], capture_output=True, text=True)
+        
+        print(result.stdout)
+        if result.stderr:
+            print("STDERR:", result.stderr)
+        
+        return result.returncode == 0
+        
+    except Exception as e:
+        print(f"❌ Error running authentication tests: {e}")
+        return False
+
+
 def run_tests_organized():
     """Run tests in organized manner - unit first, then integration"""
     print("🚀 Running Backend Tests - Organized Approach")
@@ -144,8 +181,11 @@ def run_tests_organized():
     if all_passed:
         print("🎉 ALL TESTS PASSED! Backend is healthy! 🚀")
         print("\n📋 Test Structure:")
-        print("   ✅ Unit Tests: tests/unit/ (entities, use cases)")
-        print("   ✅ Integration Tests: tests/integration/ (full flows)")
+        print("   ✅ Unit Tests: tests/unit/ (entities, use cases, JWT, User)")
+        print("   ✅ Integration Tests: tests/integration/ (API endpoints, database, E2E auth)")
+        print("   🔐 Authentication Tests: JWT Manager, User Entity, PostgreSQL Repository")
+        print("   🌐 API Tests: Auth endpoints, OAuth flows, error handling")
+        print("   🔄 E2E Tests: Complete authentication flows, concurrent operations")
     else:
         print("⚠️  Some tests failed. Check output above for details.")
     
@@ -181,12 +221,19 @@ if __name__ == "__main__":
             success = run_specific_category("unit")
         elif arg == "integration":
             success = run_specific_category("integration")
+        elif arg == "auth":
+            success = run_auth_tests_only()
         elif arg == "organized":
             success = run_tests_organized()
         elif arg == "combined":
             success = run_tests_combined()
         else:
-            print("Usage: python run_tests.py [unit|integration|organized|combined]")
+            print("Usage: python run_tests.py [unit|integration|auth|organized|combined]")
+            print("  unit: Run only unit tests")
+            print("  integration: Run only integration tests")
+            print("  auth: Run only authentication tests")
+            print("  organized: Run unit tests first, then integration")
+            print("  combined: Run all tests together")
             sys.exit(1)
     else:
         # Default: run organized approach

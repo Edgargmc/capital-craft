@@ -1,0 +1,49 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: capital_craft_db
+    environment:
+      POSTGRES_DB: capital_craft
+      POSTGRES_USER: capital_craft_user
+      POSTGRES_PASSWORD: capital_craft_pass
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capital_craft_user -d capital_craft"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (optional - for full stack development)
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: capital_craft_backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://capital_craft_user:capital_craft_pass@postgres:5432/capital_craft
+      - PORTFOLIO_STORAGE=postgres
+      - USE_MOCK_REPOSITORY=false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: capital_craft_network

@@ -77,7 +77,7 @@ class SellStock:
     
     def _execute_sell_transaction(self, portfolio: Portfolio, symbol: str, shares: int) -> Portfolio:
         """
-        Your original sell transaction logic - unchanged
+        Execute sell transaction using new Portfolio API
         """
         # Validate inputs
         if shares <= 0:
@@ -88,11 +88,15 @@ class SellStock:
         
         symbol = symbol.upper().strip()
         
-        # Check if holding exists
-        if symbol not in portfolio.holdings:
-            raise ValueError(f"No holdings found for {symbol}")
+        # Get current holdings
+        current_holdings = portfolio.get_holdings()
         
-        current_holding = portfolio.holdings[symbol]
+        # Find holding for this symbol
+        current_holding = next((h for h in current_holdings if h.symbol == symbol), None)
+        
+        # Check if holding exists
+        if not current_holding:
+            raise ValueError(f"No holdings found for {symbol}")
         
         # Check if enough shares to sell
         if current_holding.shares < shares:
@@ -117,29 +121,42 @@ class SellStock:
     def _update_portfolio(self, portfolio: Portfolio, symbol: str, shares_sold: int, 
                          sale_proceeds: Decimal, current_holding: Holding) -> Portfolio:
         """
-        Your original _update_portfolio method - unchanged
+        Update portfolio using new Portfolio API
         """
-        new_holdings = portfolio.holdings.copy()
+        # Get current holdings as list
+        current_holdings = portfolio.get_holdings()
+        
+        # Create new holdings list
+        new_holdings = []
         
         if current_holding.shares == shares_sold:
-            # Selling all shares - remove holding completely
-            del new_holdings[symbol]
+            # Selling all shares - remove this holding completely
+            new_holdings = [h for h in current_holdings if h.symbol != symbol]
         else:
             # Partial sale - update holding with remaining shares
             remaining_shares = current_holding.shares - shares_sold
-            new_holdings[symbol] = Holding(
+            
+            # Add all holdings except the one we're updating
+            new_holdings = [h for h in current_holdings if h.symbol != symbol]
+            
+            # Add updated holding
+            new_holdings.append(Holding(
                 symbol=symbol,
                 shares=remaining_shares,
                 average_price=current_holding.average_price  # Keep same average price
-            )
+            ))
         
-        # Return updated portfolio with increased cash
-        return Portfolio(
+        # Create updated portfolio with increased cash
+        updated_portfolio = Portfolio(
             user_id=portfolio.user_id,
             cash_balance=portfolio.cash_balance + sale_proceeds,
-            holdings=new_holdings,
-            created_at=portfolio.created_at
+            created_at=portfolio.created_at,
+            id=portfolio.id,
+            updated_at=portfolio.updated_at
         )
+        updated_portfolio.set_holdings(new_holdings)
+        
+        return updated_portfolio
     
     def _calculate_pnl(self, portfolio: Portfolio, symbol: str, shares: int) -> dict:
         """
@@ -147,10 +164,13 @@ class SellStock:
         """
         try:
             symbol = symbol.upper().strip()
-            if symbol not in portfolio.holdings:
-                return {"type": "none", "amount": 0.0, "percentage": 0.0}
             
-            holding = portfolio.holdings[symbol]
+            # Find holding for this symbol
+            current_holdings = portfolio.get_holdings()
+            holding = next((h for h in current_holdings if h.symbol == symbol), None)
+            
+            if not holding:
+                return {"type": "none", "amount": 0.0, "percentage": 0.0}
             stock = self.get_stock_data.execute(symbol)
             
             # Calculate P&L for the shares being sold
@@ -213,7 +233,7 @@ class SellStock:
                 )
             
             # 3. Portfolio rebalancing education (for multiple holdings)
-            elif len(updated_portfolio.holdings) >= 2:
+            elif len(updated_portfolio.get_holdings()) >= 2:
                 await self.notification_service.execute(
                     user_id=user_id,
                     trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
@@ -223,7 +243,7 @@ class SellStock:
                         "relevance_score": 0.8,
                         "content_slug": "diversification_basics", 
                         "transaction_context": f"You sold {shares} shares of {symbol}",
-                        "remaining_stocks": len(updated_portfolio.holdings)
+                        "remaining_stocks": len(updated_portfolio.get_holdings())
                     }
                 )
         

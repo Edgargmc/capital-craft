@@ -15,6 +15,5 @@ class CreatePortfolio:
         return Portfolio(
             user_id=user_id.strip(),
             cash_balance=self.INITIAL_CASH,
-            holdings={},
             created_at=datetime.now()
         )

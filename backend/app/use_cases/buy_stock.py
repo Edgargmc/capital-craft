@@ -118,34 +118,53 @@ class BuyStock:
     def _update_portfolio(self, portfolio: Portfolio, stock: Stock, shares: int, total_cost: Decimal) -> Portfolio:
         """Update portfolio with new purchase"""
         symbol = stock.symbol
-        new_holdings = portfolio.holdings.copy()
         
-        if symbol in new_holdings:
+        # Get current holdings as list
+        current_holdings = portfolio.get_holdings()
+        
+        # Find existing holding for this symbol
+        existing_holding = next((h for h in current_holdings if h.symbol == symbol), None)
+        
+        # Create new holdings list
+        new_holdings = []
+        
+        if existing_holding:
             # Update existing holding
-            existing = new_holdings[symbol]
-            total_shares = existing.shares + shares
-            total_value = (existing.average_price * Decimal(existing.shares)) + total_cost
+            total_shares = existing_holding.shares + shares
+            total_value = (existing_holding.average_price * Decimal(existing_holding.shares)) + total_cost
             new_average_price = total_value / Decimal(total_shares)
             
-            new_holdings[symbol] = Holding(
+            # Add all holdings except the one we're updating
+            new_holdings = [h for h in current_holdings if h.symbol != symbol]
+            
+            # Add updated holding
+            new_holdings.append(Holding(
                 symbol=symbol,
                 shares=total_shares,
                 average_price=new_average_price
-            )
+            ))
         else:
-            # Create new holding
-            new_holdings[symbol] = Holding(
+            # Keep all existing holdings
+            new_holdings = current_holdings.copy()
+            
+            # Add new holding
+            new_holdings.append(Holding(
                 symbol=symbol,
                 shares=shares,
                 average_price=stock.current_price
-            )
+            ))
         
-        return Portfolio(
+        # Create new portfolio with updated cash and holdings
+        updated_portfolio = Portfolio(
             user_id=portfolio.user_id,
             cash_balance=portfolio.cash_balance - total_cost,
-            holdings=new_holdings,
-            created_at=portfolio.created_at
+            created_at=portfolio.created_at,
+            id=portfolio.id,
+            updated_at=portfolio.updated_at
         )
+        updated_portfolio.set_holdings(new_holdings)
+        
+        return updated_portfolio
     
     async def _generate_buy_notifications(
         self, 
