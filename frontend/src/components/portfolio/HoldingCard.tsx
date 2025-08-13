@@ -13,7 +13,7 @@ const EDUCATIONAL_CONTENT = {
       medium: "15-25: Valuación razonable para la mayoría de empresas",
       high: "> 25: Puede estar sobrevalorada o ser una empresa de alto crecimiento"
     },
-    tip: "💡 Tip: Compara el P/E con empresas del mismo sector."
+    tip: " Tip: Compara el P/E con empresas del mismo sector."
   },
   beta: {
     title: "Beta (Volatilidad vs Mercado)",
@@ -23,7 +23,7 @@ const EDUCATIONAL_CONTENT = {
       medium: "≈ 1.0: Se mueve similar al mercado",
       high: "> 1.0: Más volátil que el mercado (más riesgo y potencial)"
     },
-    tip: "💡 Tip: Beta alto = mayor riesgo pero posible mayor retorno."
+    tip: " Tip: Beta alto = mayor riesgo pero posible mayor retorno."
   },
   dividend_yield: {
     title: "Dividend Yield (Rendimiento por Dividendos)",
@@ -33,7 +33,7 @@ const EDUCATIONAL_CONTENT = {
       medium: "2-4%: Balance entre crecimiento y dividendos",
       high: "> 4%: Enfoque en ingresos, ideal para jubilados"
     },
-    tip: "💡 Tip: Dividendos altos pueden indicar empresa madura o en problemas."
+    tip: " Tip: Dividendos altos pueden indicar empresa madura o en problemas."
   }
 };
 
@@ -220,10 +220,10 @@ const HoldingCard: React.FC<HoldingCardProps> = ({
         
         <div className="text-right flex-shrink-0">
           <div className="font-bold text-lg text-gray-900">
-            ${currentPrice.toFixed(2)}
+            ${(currentPrice || 0).toFixed(2)}
           </div>
           <div className="text-sm text-gray-500">
-            Avg: ${averagePrice.toFixed(2)}
+            Avg: ${(averagePrice || 0).toFixed(2)}
           </div>
         </div>
       </div>
@@ -299,14 +299,14 @@ const HoldingCard: React.FC<HoldingCardProps> = ({
       <div className="flex justify-between items-center mb-4 p-3 bg-gray-50 rounded-lg">
         <div>
           <div className="text-sm text-gray-600">Total Value</div>
-          <div className="font-bold text-lg text-gray-700">${currentValue.toFixed(2)}</div>
+          <div className="font-bold text-lg text-gray-700">${(currentValue || 0).toFixed(2)}</div>
         </div>
         <div className="text-right">
           <div className={`font-bold text-lg ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {isPositive ? '+' : ''}${unrealizedPnl.toFixed(2)}
+            {isPositive ? '+' : ''}${(unrealizedPnl || 0).toFixed(2)}
           </div>
           <div className={`text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            ({isPositive ? '+' : ''}{unrealizedPnlPercent.toFixed(1)}%)
+            ({isPositive ? '+' : ''}{(unrealizedPnlPercent || 0).toFixed(1)}%)
           </div>
         </div>
       </div>

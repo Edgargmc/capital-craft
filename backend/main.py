@@ -198,26 +198,17 @@ async def get_my_portfolio(
     current_user_id: str = Depends(get_current_user_id),
     get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case)
 ):
-    """Get current user's portfolio - Authenticated endpoint"""
+    """Get current user's portfolio with calculated values - Authenticated endpoint"""
     try:
         # Use authenticated user_id from JWT token
         portfolio = await get_or_create_portfolio.execute(current_user_id)
         
-        return {
-            "user_id": portfolio.user_id,
-            "cash_balance": float(portfolio.cash_balance),
-            "holdings": {
-                holding.symbol: {
-                    "symbol": holding.symbol,
-                    "shares": holding.shares,
-                    "average_price": float(holding.average_price)
-                }
-                for holding in portfolio.get_holdings()
-            },
-            "total_holdings": len(portfolio.get_holdings()),
-            "created_at": portfolio.created_at.isoformat()
-        }
+        # ✅ NEW: Calculate current values using GetPortfolioSummary
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
+        portfolio_summary_use_case = GetPortfolioSummary(get_stock_data)
+        summary = portfolio_summary_use_case.execute(portfolio)
         
+        return summary
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -1015,3 +1006,44 @@ async def buy_stock(
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# Authenticated sell endpoint - Clean Architecture + JWT
+@app.post("/auth/portfolio/sell")
+async def sell_stock_authenticated(
+    request: SellStockRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    sell_stock_use_case: SellStock = Depends(get_sell_stock_use_case)
+):
+    """Sell stocks for authenticated user - Clean Architecture"""
+    try:
+        # Use authenticated user_id from JWT token
+        updated_portfolio = await sell_stock_use_case.execute_with_user_id(
+            current_user_id,
+            request.symbol,
+            request.shares
+        )
+        
+        return {
+            "user_id": updated_portfolio.user_id,
+            "cash_balance": float(updated_portfolio.cash_balance),
+            "holdings": {
+                holding.symbol: {
+                    "symbol": holding.symbol,
+                    "shares": holding.shares,
+                    "average_price": float(holding.average_price)
+                }
+                for holding in updated_portfolio.get_holdings()
+            },
+            "total_holdings": len(updated_portfolio.get_holdings()),
+            "transaction": {
+                "action": "sell",
+                "symbol": request.symbol.upper(),
+                "shares": request.shares
+            },
+            "educational_notifications_triggered": True
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")

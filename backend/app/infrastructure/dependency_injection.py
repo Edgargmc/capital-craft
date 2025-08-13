@@ -78,24 +78,26 @@ class DIContainer:
     def _setup_portfolio_repository(self) -> None:
         """Setup portfolio repository based on configuration"""
         # Check environment variable for storage type
-        storage_type = os.getenv("PORTFOLIO_STORAGE", "memory").lower()
+        # TEMPORARY: Default to postgres for testing (was "memory")
+        storage_type = os.getenv("PORTFOLIO_STORAGE", "postgres").lower()
         
         if storage_type == "memory":
             # Use in-memory storage (no JSON files generated)
             self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
-            print("✅ Portfolio repository initialized: InMemoryPortfolioRepository (no files generated)")
+            print(" Portfolio repository initialized: InMemoryPortfolioRepository (no files generated)")
         elif storage_type == "json":
             # JSON persistence (creates files)
             data_path = os.getenv("PORTFOLIO_DATA_PATH", "data")
             self._dependencies["portfolio_repository"] = JsonPortfolioRepository(data_path)
-            print(f"✅ Portfolio repository initialized: JsonPortfolioRepository (path: {data_path})")
+            print(f" Portfolio repository initialized: JsonPortfolioRepository (path: {data_path})")
         elif storage_type == "postgres":
-            # TODO: Implement PostgresPortfolioRepository
-            print("⚠️  PostgresPortfolioRepository not implemented yet, falling back to memory")
-            self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
+            # NEW: PostgreSQL persistence (database storage)
+            from ..infrastructure.providers.postgres_portfolio_repository import PostgresPortfolioRepository
+            self._dependencies["portfolio_repository"] = PostgresPortfolioRepository()
+            print(" Portfolio repository initialized: PostgresPortfolioRepository (database storage)")
         else:
             # Default to memory (safest option)
-            print(f"⚠️  Unknown PORTFOLIO_STORAGE '{storage_type}', using memory")
+            print(f"  Unknown PORTFOLIO_STORAGE '{storage_type}', using memory")
             self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
     
     @lru_cache(maxsize=None)
@@ -232,9 +234,15 @@ def get_sell_stock_use_case(
     portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
 ) -> SellStock:
     """FastAPI dependency for sell stock use case"""
+    # Create GetStockDataUseCase manually (same pattern as BuyStock)
     stock_provider = get_stock_data_provider()
+    from ..use_cases.get_stock_data import GetStockDataUseCase
+    get_stock_data = GetStockDataUseCase(stock_provider)
+    
     notification_repo = _container.get_notification_repository()
-    return SellStock(portfolio_repository, stock_provider, notification_repo)
+    # Correct parameter order to match SellStock constructor
+    # SellStock.__init__(get_stock_data, portfolio_repository, notification_service)
+    return SellStock(get_stock_data, portfolio_repository, notification_repo)
 
 
 def get_analyze_portfolio_risk_use_case(

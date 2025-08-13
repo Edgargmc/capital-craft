@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, TrendingDown } from 'lucide-react';
 import { CapitalCraftAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SellStockModalProps {
   isOpen: boolean;
@@ -23,19 +24,52 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
   const [selectedStock, setSelectedStock] = useState('');
   const [shares, setShares] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  // ✅ NEW: Auth context integration
+  const auth = useAuth();
+
+  // 🔍 DEBUG: Log holdings structure
+  console.log('🔍 DEBUG: Holdings structure', { holdings, selectedStock });
 
   const holding = selectedStock ? holdings[selectedStock] : null;
+  
+  // 🔍 DEBUG: Log holding resolution
+  console.log('🔍 DEBUG: Holding resolution', { selectedStock, holding, holdingExists: !!holding });
+
   const sellValue = holding && shares ? holding.current_price * parseInt(shares || '0') : 0;
   const hasEnoughShares = holding && shares ? parseInt(shares) <= holding.shares : false;
   const isValidSale = holding && shares && parseInt(shares) > 0 && hasEnoughShares;
 
   const handleSell = async () => {
-    if (!isValidSale || !selectedStock) return;
+    console.log('🔍 DEBUG: handleSell called', {
+      isValidSale,
+      selectedStock,
+      shares,
+      hasEnoughShares,
+      holding,
+      authState: {
+        isAuthenticated: auth.isAuthenticated,
+        hasToken: !!auth.token
+      }
+    });
+    
+    if (!isValidSale || !selectedStock) {
+      console.log('❌ DEBUG: Validation failed', { isValidSale, selectedStock });
+      return;
+    }
 
     setLoading(true);
     try {
-      await CapitalCraftAPI.sellStock(userId, selectedStock, parseInt(shares));
+      // ✅ NEW: Use authenticated endpoint when user is logged in
+      if (auth.isAuthenticated && auth.token) {
+        console.log('✅ Using authenticated sell stock endpoint');
+        await CapitalCraftAPI.sellMyStock(auth.token, selectedStock, parseInt(shares));
+      } else {
+        console.log('⚠️ User not authenticated - cannot sell stock');
+        throw new Error('Please login to sell stocks');
+      }
+      
       onSuccess();
       onClose();
       // Reset form

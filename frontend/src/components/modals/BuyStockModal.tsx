@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { CapitalCraftAPI, Stock } from '@/lib/api';
 import { StockAutocomplete } from '@/components/common/StockAutocomplete';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BuyStockModalProps {
   isOpen: boolean;
@@ -21,6 +22,9 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   const [searching, setSearching] = useState(false);
   const [selectedStock, setSelectedStock] = useState<{symbol: string; name: string; sector: string} | null>(null);
   const [error, setError] = useState('');
+
+  // ✅ NEW: Auth context
+  const auth = useAuth();
 
   // Search for stock when symbol changes
   useEffect(() => {
@@ -57,8 +61,25 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
     if (!isValidPurchase) return;
 
     setLoading(true);
+    
+    // 🔍 DEBUG: Check auth state in BuyStockModal
+    console.log('🔍 BuyStockModal Auth State:', {
+      isAuthenticated: auth.isAuthenticated,
+      hasToken: !!auth.token,
+      user: auth.user,
+      isLoading: auth.isLoading
+    });
+    
     try {
-      await CapitalCraftAPI.buyStock(userId, symbol.toUpperCase(), parseInt(shares));
+      // ✅ NEW: Use authenticated endpoint when user is logged in
+      if (auth.isAuthenticated && auth.token) {
+        console.log('✅ Using authenticated buy stock endpoint');
+        await CapitalCraftAPI.buyMyStock(auth.token, symbol.toUpperCase(), parseInt(shares));
+      } else {
+        console.log('⚠️ User not authenticated - cannot buy stock');
+        throw new Error('Please login to buy stocks');
+      }
+      
       onSuccess();
       onClose();
       // Reset form

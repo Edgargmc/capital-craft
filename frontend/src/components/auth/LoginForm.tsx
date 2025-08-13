@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createLoginUserUseCase } from '@/use-cases/auth/loginUser';
 import { CapitalCraftAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormData {
   email: string;
@@ -12,6 +13,13 @@ interface LoginFormData {
 
 export function LoginForm() {
   const router = useRouter();
+  const auth = useAuth(); // Test AuthContext is working
+  
+  console.log(' AuthContext test:', { 
+    isAuthenticated: auth.isAuthenticated, 
+    user: auth.user?.email 
+  });
+
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
@@ -39,7 +47,10 @@ export function LoginForm() {
 
     try {
       // Use the login use case instead of direct API call
-      await loginUserUseCase.execute(formData);
+      const authResponse = await loginUserUseCase.execute(formData);
+
+      // Update AuthContext with user data
+      auth.setAuth(authResponse.user, authResponse.access_token);
 
       // Redirect to dashboard or home
       router.push('/');

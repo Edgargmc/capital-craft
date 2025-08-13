@@ -525,5 +525,76 @@
       },
       "status": "pending"
     }
+  ],
+  "78fa49d6-a751-48a0-bc85-da60c40258de": [
+    {
+      "id": "d8f4bcd1-b2cc-4837-87a7-3c69f86c0f72",
+      "userId": "78fa49d6-a751-48a0-bc85-da60c40258de",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T16:58:22.402462",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 1 shares of AAPL"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "2643aa3e-baf6-41d1-8e9e-bf9725a5e4a2",
+      "userId": "78fa49d6-a751-48a0-bc85-da60c40258de",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T17:35:14.528456",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    }
+  ],
+  "e761054e-fd2b-4c28-b0e9-46a605596c25": [
+    {
+      "id": "25b3fde7-49b7-4e6c-ba9d-9ceb461f3bf0",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T17:51:47.503829",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 1 shares of AAPL"
+      },
+      "status": "pending"
+    }
   ]
 }

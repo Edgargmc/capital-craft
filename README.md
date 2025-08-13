@@ -96,6 +96,22 @@ uvicorn main:app --reload
 2. **Desarrollo:** `fresh` cuando necesites reset completo  
 3. **Producción:** Solo `migrate` (¡nunca `fresh`!)
 
+#### 🔄 Creando Nuevas Migraciones
+
+Cuando cambies los modelos de la base de datos:
+
+```bash
+# En el backend directory
+alembic revision --autogenerate -m "Descripción del cambio"
+alembic upgrade head
+```
+
+**Ejemplo:**
+```bash
+alembic revision --autogenerate -m "Add unique constraint to portfolio user_id"
+alembic upgrade head
+```
+
 ### Frontend (Next.js)
 ```bash
 cd frontend

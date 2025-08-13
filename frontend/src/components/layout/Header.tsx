@@ -208,7 +208,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <div>
               <p className="text-xs text-gray-500">Cash</p>
               <p className="text-sm font-semibold text-gray-900">
-                ${summary.cashBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                ${summary?.cashBalance?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '0'}
               </p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <div>
               <p className="text-xs text-gray-500">Total</p>
               <p className="text-sm font-semibold text-gray-900">
-                ${summary.totalPortfolioValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                ${summary?.totalPortfolioValue?.toLocaleString('en-US', { maximumFractionDigits: 0 }) || '0'}
               </p>
             </div>
           </div>
@@ -235,12 +235,12 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
                 <p className={`text-sm font-semibold ${
                   isProfitable ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isProfitable ? '+' : ''}${Math.abs(summary.totalUnrealizedPnl).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  {isProfitable ? '+' : ''}${Math.abs(summary?.totalUnrealizedPnl || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                 </p>
                 <span className={`text-xs ${
                   isProfitable ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  ({isProfitable ? '+' : ''}{summary.totalUnrealizedPnlPercent.toFixed(1)}%)
+                  ({isProfitable ? '+' : ''}{(summary?.totalUnrealizedPnlPercent || 0).toFixed(1)}%)
                 </span>
               </div>
             </div>
@@ -303,7 +303,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <div>
               <p className="text-sm text-gray-500">Cash Balance</p>
               <p className="text-lg font-semibold text-gray-900">
-                ${summary.cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                ${summary?.cashBalance?.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -313,7 +313,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <div>
               <p className="text-sm text-gray-500">Total Value</p>
               <p className="text-lg font-semibold text-gray-900">
-                ${summary.totalPortfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                ${summary?.totalPortfolioValue?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0'}
               </p>
             </div>
           </div>
@@ -330,12 +330,12 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
                 <p className={`text-lg font-semibold ${
                   isProfitable ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isProfitable ? '+' : ''}${summary.totalUnrealizedPnl.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {isProfitable ? '+' : ''}${summary?.totalUnrealizedPnl?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0'}
                 </p>
                 <span className={`text-sm font-medium ${
                   isProfitable ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  ({isProfitable ? '+' : ''}{summary.totalUnrealizedPnlPercent.toFixed(2)}%)
+                  ({isProfitable ? '+' : ''}{(summary?.totalUnrealizedPnlPercent || 0).toFixed(2)}%)
                 </span>
               </div>
             </div>

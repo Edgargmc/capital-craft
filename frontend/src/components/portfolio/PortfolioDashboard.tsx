@@ -12,19 +12,24 @@ import { LearningAlert } from '@/components/learning/LearningAlert';
 import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { RiskAnalysis } from '@/lib/api';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 
 interface PortfolioDashboardProps {
-  userId: string;
+  // ✅ NEW: userId is now optional, defaults to "demo" for non-authenticated users
+  userId?: string;
 }
 
-export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
+export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showLearningModal, setShowLearningModal] = useState(false);
+
+  // ✅ NEW: Auth context
+  const auth = useAuth();
 
   // Notification store
   const { fetchNotifications } = useNotificationStore();
@@ -36,12 +41,43 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [summaryData, riskData] = await Promise.all([
-        CapitalCraftAPI.getPortfolioSummary(userId),
-        CapitalCraftAPI.getRiskAnalysis(userId)
-      ]);
-      setSummary(summaryData);
-      setRiskAnalysis(riskData);
+      
+      // 🔍 DEBUG: Check auth state
+      console.log('🔍 PortfolioDashboard Auth State:', {
+        isAuthenticated: auth.isAuthenticated,
+        hasToken: !!auth.token,
+        user: auth.user,
+        isLoading: auth.isLoading
+      });
+      
+      // ⏳ WAIT: Don't fetch until AuthContext finishes loading
+      if (auth.isLoading) {
+        console.log('⏳ AuthContext still loading, waiting...');
+        setLoading(false);
+        return;
+      }
+      
+      // ✅ NEW: Use authenticated endpoints when user is logged in
+      if (auth.isAuthenticated && auth.token) {
+        console.log('✅ Using authenticated endpoints');
+        const [summaryData, riskData] = await Promise.all([
+          CapitalCraftAPI.getMyPortfolio(auth.token),
+          CapitalCraftAPI.getMyRiskAnalysis(auth.token)
+        ]);
+        
+        // 🔍 DEBUG: Check data structure from authenticated endpoints
+        console.log('🔍 Authenticated Portfolio Data:', summaryData);
+        console.log('🔍 Authenticated Risk Data:', riskData);
+        
+        setSummary(summaryData);
+        setRiskAnalysis(riskData);
+      } else {
+        console.log('⚠️ User not authenticated - skipping portfolio fetch');
+        // ✅ SKIP: Don't fetch portfolio data when not authenticated
+        setSummary(null);
+        setRiskAnalysis(null);
+      }
+      
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -65,7 +101,7 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
   
   useEffect(() => {
     fetchData();
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, auth.isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const headerData = summary ? {
     cashBalance: summary.cash_balance,
@@ -197,7 +233,37 @@ export function PortfolioDashboard({ userId }: PortfolioDashboardProps) {
         onClose={() => setShowSellModal(false)}
         onSuccess={handleTradeSuccess}
         userId={userId}
-        holdings={summary?.holdings || {}}
+        holdings={(() => {
+          console.log('🔍 DEBUG: Summary holdings before passing to modal', {
+            summary,
+            holdings: summary?.holdings,
+            holdingsType: typeof summary?.holdings,
+            holdingsKeys: summary?.holdings ? Object.keys(summary.holdings) : 'no holdings',
+            isLoading: loading
+          });
+          
+          // ✅ FIX: Return empty object only if not loading and no data
+          if (loading) {
+            console.log('🔄 Still loading, returning empty holdings');
+            return {};
+          }
+          
+          const rawHoldings = summary?.holdings || {};
+          
+          // ✅ FIX: Convert Array to Object if needed
+          if (Array.isArray(rawHoldings)) {
+            console.log('🔧 Converting holdings array to object');
+            const holdingsObject: Record<string, any> = {};
+            rawHoldings.forEach((holding: any) => {
+              if (holding.symbol) {
+                holdingsObject[holding.symbol] = holding;
+              }
+            });
+            return holdingsObject;
+          }
+          
+          return rawHoldings;
+        })()}
       />
 
       <LearningContentModal 

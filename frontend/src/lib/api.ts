@@ -300,4 +300,94 @@ export class CapitalCraftAPI {
     const result = await response.json();
     return result.results || [];
   }
+
+  // NEW: Authenticated Portfolio Methods
+  static async getMyPortfolio(token: string): Promise<PortfolioSummary> {
+    const response = await fetch(`${API_BASE}/portfolio/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch authenticated portfolio');
+    }
+    
+    const portfolioData = await response.json();
+    
+    // Transform Portfolio entity to PortfolioSummary format
+    const holdingsArray = Object.values(portfolioData.holdings || {});
+    const totalPortfolioValue = portfolioData.cash_balance + holdingsArray.reduce((sum: number, holding: any) => {
+      return sum + (holding.current_value || 0);
+    }, 0);
+    
+    const totalUnrealizedPnl = holdingsArray.reduce((sum: number, holding: any) => {
+      return sum + (holding.unrealized_pnl || 0);
+    }, 0);
+    
+    const totalUnrealizedPnlPercent = totalPortfolioValue > portfolioData.cash_balance 
+      ? (totalUnrealizedPnl / (totalPortfolioValue - portfolioData.cash_balance)) * 100 
+      : 0;
+    
+    return {
+      cash_balance: portfolioData.cash_balance,
+      total_portfolio_value: totalPortfolioValue,
+      total_unrealized_pnl: totalUnrealizedPnl,
+      total_unrealized_pnl_percent: totalUnrealizedPnlPercent,
+      holdings_count: portfolioData.total_holdings || 0,
+      holdings: holdingsArray
+    };
+  }
+
+  static async getMyRiskAnalysis(token: string): Promise<RiskAnalysis> {
+    const response = await fetch(`${API_BASE}/portfolio/me/risk-analysis`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch authenticated risk analysis');
+    }
+    
+    return response.json();
+  }
+
+  // ✅ NEW: Authenticated Buy Stock Method
+  static async buyMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
+    const response = await fetch(`${API_BASE}/auth/portfolio/buy`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ symbol, shares }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to buy stock with authentication');
+    }
+    
+    return response.json();
+  }
+
+  // ✅ NEW: Authenticated Sell Stock Method
+  static async sellMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
+    const response = await fetch(`${API_BASE}/auth/portfolio/sell`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ symbol, shares }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to sell stock with authentication');
+    }
+    
+    return response.json();
+  }
 }

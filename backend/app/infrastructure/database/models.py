@@ -73,7 +73,7 @@ class PortfolioModel(Base):
     id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
     # Foreign key to user
-    user_id = Column(UniversalUUID(), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(UniversalUUID(), ForeignKey("users.id"), nullable=False, unique=True, index=True)
     
     # Financial data
     cash_balance = Column(DECIMAL(15, 2), nullable=False, default=Decimal('10000.00'))
