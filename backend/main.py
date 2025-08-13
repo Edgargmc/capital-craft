@@ -183,6 +183,44 @@ class BuyStockRequest(BaseModel):
 # Baby Step 1: Repository replaces global dict 
 # portfolios_db = {} # REMOVED - now using repository
 
+from app.infrastructure.dependency_injection import (
+    get_portfolio_repository, 
+    get_stock_data_provider,
+    get_get_or_create_portfolio_use_case,
+    get_buy_stock_use_case,
+    get_sell_stock_use_case,
+    get_analyze_portfolio_risk_use_case
+)
+from app.infrastructure.auth.dependencies import get_current_user_id
+
+@app.get("/portfolio/me")
+async def get_my_portfolio(
+    current_user_id: str = Depends(get_current_user_id),
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case)
+):
+    """Get current user's portfolio - Authenticated endpoint"""
+    try:
+        # Use authenticated user_id from JWT token
+        portfolio = await get_or_create_portfolio.execute(current_user_id)
+        
+        return {
+            "user_id": portfolio.user_id,
+            "cash_balance": float(portfolio.cash_balance),
+            "holdings": {
+                holding.symbol: {
+                    "symbol": holding.symbol,
+                    "shares": holding.shares,
+                    "average_price": float(holding.average_price)
+                }
+                for holding in portfolio.get_holdings()
+            },
+            "total_holdings": len(portfolio.get_holdings()),
+            "created_at": portfolio.created_at.isoformat()
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/portfolio/{user_id}")
 async def get_portfolio(
     user_id: str,
@@ -197,14 +235,14 @@ async def get_portfolio(
             "user_id": portfolio.user_id,
             "cash_balance": float(portfolio.cash_balance),
             "holdings": {
-                symbol: {
+                holding.symbol: {
                     "symbol": holding.symbol,
                     "shares": holding.shares,
                     "average_price": float(holding.average_price)
                 }
-                for symbol, holding in portfolio.holdings.items()
+                for holding in portfolio.get_holdings()
             },
-            "total_holdings": len(portfolio.holdings),
+            "total_holdings": len(portfolio.get_holdings()),
             "created_at": portfolio.created_at.isoformat()
         }
         
@@ -238,14 +276,14 @@ async def buy_stock(
             "user_id": updated_portfolio.user_id,
             "cash_balance": float(updated_portfolio.cash_balance),
             "holdings": {
-                symbol: {
+                holding.symbol: {
                     "symbol": holding.symbol,
                     "shares": holding.shares,
                     "average_price": float(holding.average_price)
                 }
-                for symbol, holding in updated_portfolio.holdings.items()
+                for holding in updated_portfolio.get_holdings()
             },
-            "total_holdings": len(updated_portfolio.holdings),
+            "total_holdings": len(updated_portfolio.get_holdings()),
             "transaction": {
                 "action": "buy",
                 "symbol": request.symbol.upper(),
@@ -312,14 +350,14 @@ async def sell_stock(
             "user_id": updated_portfolio.user_id,
             "cash_balance": float(updated_portfolio.cash_balance),
             "holdings": {
-                symbol: {
+                holding.symbol: {
                     "symbol": holding.symbol,
                     "shares": holding.shares,
                     "average_price": float(holding.average_price)
                 }
-                for symbol, holding in updated_portfolio.holdings.items()
+                for holding in updated_portfolio.get_holdings()
             },
-            "total_holdings": len(updated_portfolio.holdings),
+            "total_holdings": len(updated_portfolio.get_holdings()),
             "transaction": {
                 "action": "sell",
                 "symbol": request.symbol.upper(),
@@ -840,3 +878,140 @@ def health_check():
             "service": "capital-craft-backend", 
             "error": f"System issue: {str(e)}"
         }
+
+# Authenticated risk analysis endpoint - Clean Architecture + JWT
+@app.get("/portfolio/me/risk-analysis")
+async def get_my_portfolio_risk_analysis(
+    current_user_id: str = Depends(get_current_user_id),
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case),
+    analyze_portfolio_risk_use_case: AnalyzePortfolioRisk = Depends(get_analyze_portfolio_risk_use_case)
+):
+    """Portfolio risk analysis for authenticated user - Clean Architecture"""
+    try:
+        # Get user's portfolio
+        portfolio = await get_or_create_portfolio.execute(current_user_id)
+        
+        # Analyze portfolio risk
+        risk_analysis = await analyze_portfolio_risk_use_case.execute(portfolio, current_user_id)
+        
+        # Educational trigger for learning opportunities
+        if risk_analysis.learning_trigger:
+            print(f"🎓 Learning opportunity triggered for user {current_user_id}: {risk_analysis.learning_trigger}")
+        
+        return {
+            "user_id": portfolio.user_id,
+            "portfolio_summary": {
+                "cash_balance": float(portfolio.cash_balance),
+                "total_holdings": len(portfolio.get_holdings()),
+                "holdings": {
+                    holding.symbol: {
+                        "symbol": holding.symbol,
+                        "shares": holding.shares,
+                        "average_price": float(holding.average_price)
+                    }
+                    for holding in portfolio.get_holdings()
+                }
+            },
+            "risk_analysis": {
+                "risk_level": risk_analysis.risk_level,
+                "volatility_score": risk_analysis.volatility_score,
+                "learning_trigger": risk_analysis.learning_trigger,
+                "risk_factors": risk_analysis.risk_factors,
+                "recommendation": risk_analysis.recommendation,
+                "notifications_generated": risk_analysis.notifications_generated,
+            },
+            "analysis_timestamp": risk_analysis.analysis_date.isoformat(),
+            "educational_insights": risk_analysis.learning_trigger is not None
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
+
+# Authenticated buy endpoint - Clean Architecture + JWT
+@app.post("/auth/portfolio/buy")
+async def buy_stock_authenticated(
+    request: BuyStockRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    buy_stock_use_case: BuyStock = Depends(get_buy_stock_use_case)
+):
+    """Buy stocks for authenticated user - Clean Architecture"""
+    try:
+        # Use authenticated user_id from JWT token
+        updated_portfolio = await buy_stock_use_case.execute_with_user_id(
+            current_user_id,
+            request.symbol,
+            request.shares
+        )
+        
+        return {
+            "user_id": updated_portfolio.user_id,
+            "cash_balance": float(updated_portfolio.cash_balance),
+            "holdings": {
+                holding.symbol: {
+                    "symbol": holding.symbol,
+                    "shares": holding.shares,
+                    "average_price": float(holding.average_price)
+                }
+                for holding in updated_portfolio.get_holdings()
+            },
+            "total_holdings": len(updated_portfolio.get_holdings()),
+            "transaction": {
+                "action": "buy",
+                "symbol": request.symbol.upper(),
+                "shares": request.shares
+            },
+            "educational_notifications_triggered": True
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
+
+@app.post("/portfolio/{user_id}/buy")
+async def buy_stock(
+    user_id: str, 
+    request: BuyStockRequest,
+    portfolio_repo: PortfolioRepository = Depends(get_portfolio_repository)
+):
+    """Clean Architecture: Buy stocks with centralized logic"""
+    try:
+        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
+        get_stock_data = GetStockDataUseCase(stock_data_provider)
+        buy_stock_use_case = BuyStock(
+            get_stock_data, 
+            portfolio_repo,  # Repository injected
+            notification_service  # Notifications injected
+        )
+        
+        # Use new clean method - handles get/create/save internally
+        updated_portfolio = await buy_stock_use_case.execute_with_user_id(
+            user_id, 
+            request.symbol, 
+            request.shares
+        )
+        
+        return {
+            "user_id": updated_portfolio.user_id,
+            "cash_balance": float(updated_portfolio.cash_balance),
+            "holdings": {
+                holding.symbol: {
+                    "symbol": holding.symbol,
+                    "shares": holding.shares,
+                    "average_price": float(holding.average_price)
+                }
+                for holding in updated_portfolio.get_holdings()
+            },
+            "total_holdings": len(updated_portfolio.get_holdings()),
+            "transaction": {
+                "action": "buy",
+                "symbol": request.symbol.upper(),
+                "shares": request.shares
+            },
+            "educational_notifications_triggered": True  # NEW
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

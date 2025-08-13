@@ -65,12 +65,36 @@ python run.py --help        # Ver ayuda completa
 cd backend
 pip install -r requirements.txt
 
-# Para usar datos mock (recomendado para desarrollo)
-export USE_MOCK_REPOSITORY=true
+# 🗄️ Configurar Base de Datos (PostgreSQL)
+docker-compose up -d postgres          # Iniciar PostgreSQL container
 
+# 🎯 Setup inicial de base de datos
+python scripts/db_manager.py fresh     # Reset completo + datos de prueba
+
+# 🔄 Gestión de base de datos
+python scripts/db_manager.py migrate   # Solo ejecutar migraciones pendientes
+python scripts/db_manager.py seed      # Solo cargar datos de prueba
+python scripts/db_manager.py status    # Verificar estado de la DB
+
+# 🚀 Iniciar servidor
 uvicorn main:app --reload
 # Server: http://localhost:8000
 ```
+
+#### 📋 Comandos de Base de Datos
+
+| Comando | Descripción | Cuándo usar |
+|---------|-------------|-------------|
+| `fresh` | Reset completo + migraciones + datos | Setup inicial, desarrollo diario |
+| `migrate` | Solo ejecutar migraciones pendientes | Después de cambios en modelos |
+| `seed` | Solo cargar datos de prueba | Cuando necesites datos limpios |
+| `reset` | Solo limpiar base de datos | Para empezar desde cero |
+| `status` | Verificar estado actual | Diagnóstico de problemas |
+
+**Flujo recomendado:**
+1. **Primera vez:** `fresh` (crea todo desde cero)
+2. **Desarrollo:** `fresh` cuando necesites reset completo  
+3. **Producción:** Solo `migrate` (¡nunca `fresh`!)
 
 ### Frontend (Next.js)
 ```bash

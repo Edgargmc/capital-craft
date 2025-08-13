@@ -24,19 +24,36 @@ class DatabaseConfig:
     """
     
     def __init__(self):
-        self.database_url = os.getenv(
-            "DATABASE_URL", 
-            "postgresql+asyncpg://capital_craft_user:capital_craft_pass@localhost:5434/capital_craft"
-        )
+        # Detect if we're running tests
+        is_testing = os.getenv("TESTING", "false").lower() == "true" or "pytest" in os.getenv("_", "")
         
-        # Create async engine
-        self.engine = create_async_engine(
-            self.database_url,
-            echo=os.getenv("DB_ECHO", "false").lower() == "true",  # Log SQL queries in dev
-            pool_size=20,
-            max_overflow=0,
-            pool_pre_ping=True,  # Verify connections before use
-        )
+        if is_testing:
+            # Use SQLite in memory for tests
+            self.database_url = "sqlite+aiosqlite:///:memory:"
+        else:
+            # Use PostgreSQL for normal operation
+            self.database_url = os.getenv(
+                "DATABASE_URL", 
+                "postgresql+asyncpg://capital_craft_user:capital_craft_pass@localhost:5434/capital_craft"
+            )
+        
+        # Create async engine with different settings for SQLite vs PostgreSQL
+        if is_testing and "sqlite" in self.database_url:
+            # SQLite-specific configuration
+            self.engine = create_async_engine(
+                self.database_url,
+                echo=os.getenv("DB_ECHO", "false").lower() == "true",
+                # SQLite doesn't need connection pooling
+            )
+        else:
+            # PostgreSQL configuration  
+            self.engine = create_async_engine(
+                self.database_url,
+                echo=os.getenv("DB_ECHO", "false").lower() == "true",  # Log SQL queries in dev
+                pool_size=20,
+                max_overflow=0,
+                pool_pre_ping=True,  # Verify connections before use
+            )
         
         # Create session factory
         self.async_session = async_sessionmaker(

@@ -3,6 +3,7 @@ SQLAlchemy Models - Infrastructure Layer
 These models map domain entities to database tables
 """
 import uuid
+import os
 from datetime import datetime
 from decimal import Decimal
 from typing import List
@@ -11,8 +12,23 @@ from sqlalchemy import Column, String, DECIMAL, DateTime, Boolean, Integer, Fore
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy import TypeDecorator
 
 from .config import Base
+
+
+# UUID type that works with both PostgreSQL and SQLite
+class UniversalUUID(TypeDecorator):
+    """UUID type that adapts to the database backend"""
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID(as_uuid=True))
+        else:
+            # SQLite and other databases use String
+            return dialect.type_descriptor(String(36))
 
 
 class UserModel(Base):
@@ -20,7 +36,7 @@ class UserModel(Base):
     __tablename__ = "users"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
     # User data
     email = Column(String(255), unique=True, nullable=False, index=True)
@@ -54,10 +70,10 @@ class PortfolioModel(Base):
     __tablename__ = "portfolios"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
     # Foreign key to user
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(UniversalUUID(), ForeignKey("users.id"), nullable=False, index=True)
     
     # Financial data
     cash_balance = Column(DECIMAL(15, 2), nullable=False, default=Decimal('10000.00'))
@@ -79,10 +95,10 @@ class HoldingModel(Base):
     __tablename__ = "holdings"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
     # Foreign key to portfolio
-    portfolio_id = Column(UUID(as_uuid=True), ForeignKey("portfolios.id"), nullable=False, index=True)
+    portfolio_id = Column(UniversalUUID(), ForeignKey("portfolios.id"), nullable=False, index=True)
     
     # Stock data
     symbol = Column(String(10), nullable=False, index=True)
@@ -111,10 +127,10 @@ class NotificationModel(Base):
     __tablename__ = "notifications"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
     # Foreign key to user
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(UniversalUUID(), ForeignKey("users.id"), nullable=False, index=True)
     
     # Notification data
     title = Column(String(255), nullable=False)

@@ -2,7 +2,7 @@
 User Entity - Domain Layer
 Following Clean Architecture and Domain-Driven Design principles
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -77,19 +77,19 @@ class User:
         """Update last login timestamp (immutable pattern)"""
         # In a fully immutable design, this would return a new User instance
         # For now, we'll use this pattern to prepare for immutability
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return self
     
     def deactivate(self) -> 'User':
         """Deactivate user account"""
         self.is_active = False
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return self
     
     def activate(self) -> 'User':
         """Activate user account"""
         self.is_active = True
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return self
     
     def update_profile(self, username: Optional[str] = None, avatar_url: Optional[str] = None) -> 'User':
@@ -99,7 +99,7 @@ class User:
         if avatar_url is not None:
             self.avatar_url = avatar_url
         
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
         return self
 
 
@@ -123,8 +123,8 @@ def create_oauth_user(email: str, username: str, provider: AuthProvider, provide
         provider=provider,
         provider_id=provider_id,
         avatar_url=avatar_url,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
 
 
@@ -145,6 +145,6 @@ def create_local_user(email: str, username: str, password_hash: str) -> User:
         username=username,
         provider=AuthProvider.LOCAL,
         password_hash=password_hash,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )

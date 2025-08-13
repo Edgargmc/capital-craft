@@ -177,10 +177,10 @@ class BuyStock:
         try:
             print(f"\n=== NOTIFICATION DEBUG ===")
             print(f"Stock: {stock.symbol}")
-            print(f"Holdings: {len(updated_portfolio.holdings)}")
+            print(f"Holdings: {len(updated_portfolio.get_holdings())}")
             
             # 1. First-time stock purchase
-            if len(updated_portfolio.holdings) == 1:
+            if len(updated_portfolio.get_holdings()) == 1:
                 print("✅ TRIGGERING: First stock purchase")
                 await self.notification_service.execute(
                     user_id=user_id,
@@ -228,8 +228,8 @@ class BuyStock:
                 )
             
             # 4. Diversification
-            if len(updated_portfolio.holdings) >= 3:
-                print(f"✅ TRIGGERING: Diversification ({len(updated_portfolio.holdings)} stocks)")
+            if len(updated_portfolio.get_holdings()) >= 3:
+                print(f"✅ TRIGGERING: Diversification ({len(updated_portfolio.get_holdings())} stocks)")
                 await self.notification_service.execute(
                     user_id=user_id,
                     trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
@@ -238,7 +238,7 @@ class BuyStock:
                         "topic_description": "building a well-balanced investment portfolio",
                         "relevance_score": 0.8,
                         "content_slug": "diversification_basics",
-                        "transaction_context": f"You now own {len(updated_portfolio.holdings)} different stocks"
+                        "transaction_context": f"You now own {len(updated_portfolio.get_holdings())} different stocks"
                     }
                 )
             

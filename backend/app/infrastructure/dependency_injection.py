@@ -35,6 +35,12 @@ from ..use_cases.create_user import CreateUserUseCase
 from ..use_cases.authenticate_user import AuthenticateUserUseCase
 from ..infrastructure.database import get_db_session
 
+# Stock Data Provider imports
+from ..infrastructure.providers.provider_factory import ProviderFactory
+from ..use_cases.buy_stock import BuyStock
+from ..use_cases.sell_stock import SellStock
+from ..use_cases.analyze_portfolio_risk import AnalyzePortfolioRisk
+
 
 class DIContainer:
     """
@@ -67,17 +73,30 @@ class DIContainer:
             data_path = os.getenv("NOTIFICATION_DATA_PATH", "data/notifications.json")
             self._dependencies["notification_repository"] = JSONNotificationRepository(data_path)
         
-        # Setup portfolio repository (Baby Step 2C: JSON by default, Memory as fallback)
-        portfolio_storage = os.getenv("PORTFOLIO_STORAGE", "json").lower()  # Changed default to JSON
+        self._setup_portfolio_repository()
+    
+    def _setup_portfolio_repository(self) -> None:
+        """Setup portfolio repository based on configuration"""
+        # Check environment variable for storage type
+        storage_type = os.getenv("PORTFOLIO_STORAGE", "memory").lower()
         
-        if portfolio_storage == "memory":
+        if storage_type == "memory":
+            # Use in-memory storage (no JSON files generated)
             self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
-            print("✅ Portfolio repository initialized: InMemoryPortfolioRepository")
-        else:
-            # Default to JSON persistence
+            print("✅ Portfolio repository initialized: InMemoryPortfolioRepository (no files generated)")
+        elif storage_type == "json":
+            # JSON persistence (creates files)
             data_path = os.getenv("PORTFOLIO_DATA_PATH", "data")
             self._dependencies["portfolio_repository"] = JsonPortfolioRepository(data_path)
             print(f"✅ Portfolio repository initialized: JsonPortfolioRepository (path: {data_path})")
+        elif storage_type == "postgres":
+            # TODO: Implement PostgresPortfolioRepository
+            print("⚠️  PostgresPortfolioRepository not implemented yet, falling back to memory")
+            self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
+        else:
+            # Default to memory (safest option)
+            print(f"⚠️  Unknown PORTFOLIO_STORAGE '{storage_type}', using memory")
+            self._dependencies["portfolio_repository"] = InMemoryPortfolioRepository()
     
     @lru_cache(maxsize=None)
     def get_notification_repository(self) -> NotificationRepository:
@@ -180,3 +199,47 @@ async def get_authenticate_user_use_case(
 ) -> AuthenticateUserUseCase:
     """FastAPI dependency for authenticate user use case"""
     return AuthenticateUserUseCase(user_repository)
+
+
+# Stock data provider dependencies
+def get_stock_data_provider():
+    """FastAPI dependency for stock data provider"""
+    factory = ProviderFactory()
+    return factory.create_provider()
+
+
+def get_buy_stock_use_case(
+    portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
+) -> BuyStock:
+    """FastAPI dependency for buy stock use case"""
+    # Create GetStockDataUseCase manually
+    stock_provider = get_stock_data_provider()
+    from ..use_cases.get_stock_data import GetStockDataUseCase
+    get_stock_data = GetStockDataUseCase(stock_provider)
+    
+    # Use container method for notification service
+    notification_service = _container.get_generate_notification_use_case()
+    
+    # Create BuyStock with correct parameter order
+    return BuyStock(
+        get_stock_data=get_stock_data,
+        portfolio_repository=portfolio_repository,
+        notification_service=notification_service
+    )
+
+
+def get_sell_stock_use_case(
+    portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
+) -> SellStock:
+    """FastAPI dependency for sell stock use case"""
+    stock_provider = get_stock_data_provider()
+    notification_repo = _container.get_notification_repository()
+    return SellStock(portfolio_repository, stock_provider, notification_repo)
+
+
+def get_analyze_portfolio_risk_use_case(
+    portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
+) -> AnalyzePortfolioRisk:
+    """FastAPI dependency for analyze portfolio risk use case"""
+    stock_provider = get_stock_data_provider()
+    return AnalyzePortfolioRisk(portfolio_repository, stock_provider)

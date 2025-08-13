@@ -147,6 +147,383 @@
         "content_slug": "volatility_basics"
       },
       "status": "pending"
+    },
+    {
+      "id": "d12a6e1b-6f48-4dc3-a3aa-39945d84f533",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T21:59:58.981773",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 1 shares of AAPL"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "c77c8e39-f070-4dc4-9f89-14bd374dd635",
+      "userId": "demo",
+      "title": "\u2696\ufe0f Portfolio Risk: MEDIUM",
+      "message": "Your portfolio risk changed to MEDIUM. Discover what this means for your strategy.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:05:16.745271",
+      "sentAt": null,
+      "deepLink": "/learning/content/risk_management?level=MEDIUM",
+      "triggerType": "risk_change",
+      "triggerData": {
+        "new_risk_level": "MEDIUM",
+        "volatility_score": 1.29,
+        "risk_level_changed": true
+      },
+      "status": "pending"
+    },
+    {
+      "id": "14baa807-17a9-407d-ac85-37ce16fd3936",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Portfolio Diversification",
+      "message": "Based on your portfolio, now is a great time to understand spreading risk across different investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:05:16.747105",
+      "sentAt": null,
+      "deepLink": "/learning/content/diversification_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Portfolio Diversification",
+        "topic_description": "spreading risk across different investments",
+        "relevance_score": 0.9,
+        "content_slug": "diversification_basics"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "9b052527-a349-4b66-b5a0-c9ac5947671c",
+      "userId": "demo",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:06:18.432137",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "f5ac28d4-0909-4806-9bc8-8bd92112f964",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Advanced Volatility Management",
+      "message": "Based on your portfolio, now is a great time to understand advanced strategies for managing high-risk, high-reward portfolios.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:06:18.445196",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_advanced",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Advanced Volatility Management",
+        "topic_description": "advanced strategies for managing high-risk, high-reward portfolios",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_advanced"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "2e1aa091-4a65-409a-9c4d-d81b91608bdb",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Dividend Investing",
+      "message": "Based on your portfolio, now is a great time to understand how dividend stocks can provide steady income.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:06:57.234023",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Dividend Investing",
+        "topic_description": "how dividend stocks can provide steady income",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics",
+        "transaction_context": "You bought dividend-paying stock MSFT",
+        "dividend_yield": 0.0264
+      },
+      "status": "pending"
+    },
+    {
+      "id": "56f154a9-7612-4c5f-9b94-af57e4f3cc7a",
+      "userId": "demo",
+      "title": "\ud83d\udca1 Perfect time to learn about Portfolio Rebalancing",
+      "message": "Based on your portfolio, now is a great time to understand maintaining optimal portfolio allocation.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": true,
+      "dismissed": false,
+      "createdAt": "2025-08-12T22:07:25.640232",
+      "sentAt": null,
+      "deepLink": "/learning/content/diversification_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Portfolio Rebalancing",
+        "topic_description": "maintaining optimal portfolio allocation",
+        "relevance_score": 0.8,
+        "content_slug": "diversification_basics",
+        "transaction_context": "You sold 2 shares of GOOGL",
+        "remaining_stocks": 3
+      },
+      "status": "pending"
+    }
+  ],
+  "me": [
+    {
+      "id": "bd66756f-25ab-4382-ac90-96a84b3cb731",
+      "userId": "me",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:04:54.894741",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 2 shares of AAPL"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "77192bda-a2eb-42a2-9dc1-4d7a994613dc",
+      "userId": "me",
+      "title": "\u2696\ufe0f Portfolio Risk: MEDIUM",
+      "message": "Your portfolio risk changed to MEDIUM. Discover what this means for your strategy.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:15:52.794657",
+      "sentAt": null,
+      "deepLink": "/learning/content/risk_management?level=MEDIUM",
+      "triggerType": "risk_change",
+      "triggerData": {
+        "new_risk_level": "MEDIUM",
+        "volatility_score": 1.29,
+        "risk_level_changed": true
+      },
+      "status": "pending"
+    },
+    {
+      "id": "813d7030-4b25-4709-a08a-cb5dd252bff8",
+      "userId": "me",
+      "title": "\ud83d\udca1 Perfect time to learn about Portfolio Diversification",
+      "message": "Based on your portfolio, now is a great time to understand spreading risk across different investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:15:52.796597",
+      "sentAt": null,
+      "deepLink": "/learning/content/diversification_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Portfolio Diversification",
+        "topic_description": "spreading risk across different investments",
+        "relevance_score": 0.9,
+        "content_slug": "diversification_basics"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "e6cf624a-691f-4d41-8c51-2a946ea9c707",
+      "userId": "me",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:35:01.663305",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "9e745489-cc26-47e2-8577-0158e8dd7ead",
+      "userId": "me",
+      "title": "\u2696\ufe0f Portfolio Risk: HIGH",
+      "message": "Your portfolio risk changed to HIGH. Discover what this means for your strategy.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:51:07.092801",
+      "sentAt": null,
+      "deepLink": "/learning/content/risk_management?level=HIGH",
+      "triggerType": "risk_change",
+      "triggerData": {
+        "new_risk_level": "HIGH",
+        "volatility_score": 1.4240543863797588,
+        "risk_level_changed": true
+      },
+      "status": "pending"
+    },
+    {
+      "id": "50af6bee-d82b-4928-b75a-0101662a2b5b",
+      "userId": "me",
+      "title": "\ud83d\udca1 Perfect time to learn about Market Volatility",
+      "message": "Based on your portfolio, now is a great time to understand understanding how market ups and downs affect your investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:51:07.096068",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Market Volatility",
+        "topic_description": "understanding how market ups and downs affect your investments",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics"
+      },
+      "status": "pending"
+    }
+  ],
+  "7897bae7-af8c-400b-9bd4-eb0b88be2685": [
+    {
+      "id": "d3d89473-1ebc-493b-88a9-4fd4d3588eb3",
+      "userId": "7897bae7-af8c-400b-9bd4-eb0b88be2685",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:33:03.161773",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 3 shares of AAPL"
+      },
+      "status": "pending"
+    }
+  ],
+  "a70848ab-136a-4cef-bfb6-943731b62d42": [
+    {
+      "id": "eb74d8a4-fc82-4a33-bae0-dfd5dc6d01e6",
+      "userId": "a70848ab-136a-4cef-bfb6-943731b62d42",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:47:18.327958",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 5 shares of AAPL"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "fa198c9c-e00f-4fdb-8fb3-c61c90747dfe",
+      "userId": "a70848ab-136a-4cef-bfb6-943731b62d42",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T00:03:13.446198",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    }
+  ],
+  "authenticated": [
+    {
+      "id": "3a29473f-3866-4132-9529-5e5e9176f69e",
+      "userId": "authenticated",
+      "title": "\ud83d\udca1 Perfect time to learn about Your First Stock Purchase",
+      "message": "Based on your portfolio, now is a great time to understand congratulations on your first investment! Here's what you should know.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-12T23:58:35.289273",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Your First Stock Purchase",
+        "topic_description": "congratulations on your first investment! Here's what you should know",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "transaction_context": "You just bought 2 shares of AAPL"
+      },
+      "status": "pending"
     }
   ]
 }

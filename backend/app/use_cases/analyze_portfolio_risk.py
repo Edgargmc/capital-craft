@@ -148,10 +148,10 @@ class AnalyzePortfolioRisk:
         """
         notifications_count = 0
         
-        for symbol, holding in portfolio.holdings.items():
+        for holding in portfolio.get_holdings():  
             try:
                 # Get current stock data
-                stock_data = self.stock_provider.get_stock_data(symbol)
+                stock_data = self.stock_provider.get_stock_data(holding.symbol)
                 
                 # Check for significant individual stock volatility
                 if stock_data.beta and float(stock_data.beta) > 1.5:
@@ -159,7 +159,7 @@ class AnalyzePortfolioRisk:
                         user_id=user_id,
                         trigger_type=NotificationTriggerType.PORTFOLIO_CHANGE,
                         trigger_data={
-                            "stock_symbol": symbol,
+                            "stock_symbol": holding.symbol,
                             "change_percent": 0.0,  # Placeholder - could calculate actual change
                             "min_abs_change_percent": 0.0,
                             "content_slug": "volatility_advanced",
@@ -197,16 +197,16 @@ class AnalyzePortfolioRisk:
     # Existing methods remain unchanged for backward compatibility
     def _calculate_portfolio_beta(self, portfolio: Portfolio) -> float:
         """Calculate weighted average beta using real stock data"""
-        if not portfolio.holdings:
+        if not portfolio.get_holdings():
             return 0.0
         
         total_value = Decimal('0')
         weighted_beta_sum = Decimal('0')
         
-        for symbol, holding in portfolio.holdings.items():
+        for holding in portfolio.get_holdings():
             try:
                 # Get stock data with beta information
-                stock_data = self.stock_provider.get_stock_data(symbol)
+                stock_data = self.stock_provider.get_stock_data(holding.symbol)
                 current_value = holding.shares * stock_data.current_price
                 total_value += current_value
                 
@@ -267,7 +267,7 @@ class AnalyzePortfolioRisk:
         if volatility_score > 1.3:
             factors.append("High portfolio volatility")
         
-        if len(portfolio.holdings) < 3:
+        if len(portfolio.get_holdings()) < 3:
             factors.append("Limited diversification")
         
         # Could add more factors: sector concentration, individual stock weight, etc.

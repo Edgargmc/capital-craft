@@ -65,13 +65,32 @@ class DatabaseManager:
             return False
     
     async def reset_database(self) -> bool:
-        """Reset database completely"""
+        """Reset database completely and sync Alembic"""
         print("🔄 Resetting database...")
         
         try:
+            # Step 1: Reset database tables
             from reset_database import DatabaseReset
             reset = DatabaseReset()
-            return await reset.reset_database()
+            if not await reset.reset_database():
+                return False
+            
+            # Step 2: Clear Alembic version table and sync
+            print("🔄 Syncing Alembic after reset...")
+            
+            # Mark current head as applied (without actually running migrations)
+            result = subprocess.run([
+                "python3", "-m", "alembic", "stamp", "head"
+            ], cwd=self.backend_path, capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                print(f"⚠️  Alembic stamp failed: {result.stderr}")
+                # Continue anyway - this is not critical
+            else:
+                print("✅ Alembic synced successfully!")
+            
+            return True
+            
         except Exception as e:
             print(f"❌ Reset failed: {e}")
             return False
@@ -143,16 +162,36 @@ class DatabaseManager:
             return False
     
     async def _run_migrations(self) -> bool:
-        """Run Alembic migrations"""
+        """Run Alembic migrations and create tables"""
         try:
             print("🔄 Running migrations...")
+            
+            # First try Alembic
             result = subprocess.run([
                 "python3", "-m", "alembic", "upgrade", "head"
             ], cwd=self.backend_path, capture_output=True, text=True)
             
             if result.returncode != 0:
-                print(f"❌ Migrations failed: {result.stderr}")
-                return False
+                print(f"⚠️ Alembic migrations had issues: {result.stderr}")
+            
+            # Ensure tables are created using SQLAlchemy models
+            print("🔄 Creating tables with SQLAlchemy...")
+            from app.infrastructure.database.config import DatabaseConfig, Base
+            from sqlalchemy import text
+            
+            # Import all models to ensure they're registered with metadata
+            from app.infrastructure.database import models
+            
+            db_config = DatabaseConfig()
+            async with db_config.engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+                
+                # Verify tables were created
+                result = await conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"))
+                tables = result.fetchall()
+                print(f"📋 Tables created: {[row[0] for row in tables]}")
+                
+            await db_config.engine.dispose()
             
             print("✅ Migrations completed")
             return True

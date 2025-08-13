@@ -74,12 +74,12 @@ class JsonPortfolioRepository(PortfolioRepository):
             "user_id": portfolio.user_id,
             "cash_balance": str(portfolio.cash_balance),  # Preserve Decimal precision
             "holdings": {
-                symbol: {
+                holding.symbol: {
                     "symbol": holding.symbol,
                     "shares": holding.shares,
                     "average_price": str(holding.average_price)  # Preserve Decimal precision
                 }
-                for symbol, holding in portfolio.holdings.items()
+                for holding in portfolio.get_holdings()  # Use new get_holdings() method
             },
             "created_at": portfolio.created_at.isoformat(),
             "updated_at": datetime.utcnow().isoformat()  # Track when saved
@@ -87,20 +87,29 @@ class JsonPortfolioRepository(PortfolioRepository):
     
     def _dict_to_portfolio(self, data: Dict[str, Any]) -> Portfolio:
         """Convert JSON dict back to Portfolio entity"""
-        holdings = {}
+        # Create portfolio without holdings first
+        portfolio = Portfolio(
+            user_id=data["user_id"],
+            cash_balance=Decimal(data["cash_balance"]),
+            created_at=datetime.fromisoformat(data["created_at"])
+        )
+        
+        # Create holdings from JSON data and set them
+        holdings = []
         for symbol, holding_data in data.get("holdings", {}).items():
-            holdings[symbol] = Holding(
+            from ...core.entities.holding import Holding
+            holding = Holding(
+                portfolio_id=portfolio.id,
                 symbol=holding_data["symbol"],
                 shares=holding_data["shares"],
                 average_price=Decimal(holding_data["average_price"])
             )
+            holdings.append(holding)
         
-        return Portfolio(
-            user_id=data["user_id"],
-            cash_balance=Decimal(data["cash_balance"]),
-            holdings=holdings,
-            created_at=datetime.fromisoformat(data["created_at"])
-        )
+        # Set holdings using the new method
+        portfolio.set_holdings(holdings)
+        
+        return portfolio
     
     def _load_portfolio_from_file(self, user_id: str) -> Optional[Portfolio]:
         """Load portfolio from JSON file (thread-safe)"""

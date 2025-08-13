@@ -46,35 +46,50 @@ class PortfolioMigrationTool:
         portfolio1 = Portfolio(
             user_id="demo",
             cash_balance=Decimal("8500.00"),
-            holdings={
-                "AAPL": Holding(
-                    symbol="AAPL",
-                    shares=10,
-                    average_price=Decimal("180.50")
-                ),
-                "TSLA": Holding(
-                    symbol="TSLA",
-                    shares=5,
-                    average_price=Decimal("250.00")
-                )
-            },
             created_at=datetime.utcnow()
         )
         
+        # Create holdings separately for portfolio1
+        holdings1 = [
+            Holding(
+                portfolio_id=portfolio1.id,
+                symbol="AAPL",
+                shares=10,
+                average_price=Decimal("180.50")
+            ),
+            Holding(
+                portfolio_id=portfolio1.id,
+                symbol="TSLA",
+                shares=5,
+                average_price=Decimal("220.00")
+            )
+        ]
+        portfolio1.set_holdings(holdings1)
+
         # Sample portfolio 2
         portfolio2 = Portfolio(
-            user_id="test_user",
-            cash_balance=Decimal("7200.75"),
-            holdings={
-                "MSFT": Holding(
-                    symbol="MSFT",
-                    shares=8,
-                    average_price=Decimal("300.25")
-                )
-            },
+            user_id="investor",
+            cash_balance=Decimal("15000.00"),
             created_at=datetime.utcnow()
         )
         
+        # Create holdings separately for portfolio2
+        holdings2 = [
+            Holding(
+                portfolio_id=portfolio2.id,
+                symbol="MSFT",
+                shares=15,
+                average_price=Decimal("320.00")
+            ),
+            Holding(
+                portfolio_id=portfolio2.id,
+                symbol="GOOGL",
+                shares=8,
+                average_price=Decimal("2650.00")
+            )
+        ]
+        portfolio2.set_holdings(holdings2)
+
         return [portfolio1, portfolio2]
     
     async def migrate_memory_to_json(self, portfolios_data):

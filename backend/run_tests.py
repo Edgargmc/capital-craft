@@ -61,7 +61,7 @@ def run_integration_tests():
         result = subprocess.run([
             sys.executable, "-m", "pytest", 
             "tests/integration/",
-            "-v", "--tb=short"
+            "-v", "--tb=short", "--forked"
         ], capture_output=True, text=True)
         
         print(result.stdout)
@@ -76,15 +76,15 @@ def run_integration_tests():
 
 
 def run_all_tests_combined():
-    """Run all tests together (alternative approach)"""
-    print("\n🚀 Running ALL Tests Together...")
+    """Run all tests together with forked isolation"""
+    print("\n🚀 Running ALL Tests Together with --forked...")
     print("=" * 50)
     
     try:
         result = subprocess.run([
             sys.executable, "-m", "pytest", 
             "tests/",
-            "-v", "--tb=short"
+            "-v", "--tb=short", "--forked"
         ], capture_output=True, text=True)
         
         print(result.stdout)

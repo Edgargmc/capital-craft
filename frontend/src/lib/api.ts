@@ -26,37 +26,43 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
-  export interface Stock {
-    symbol: string;
-    name: string;
-    current_price: number;
-    sector: string;
-    market_cap: number | null;
-    pe_ratio: number | null;
-    // Educational fields nuevos:
-    eps?: number;
-    beta?: number;
-    dividend_yield?: number;
-    book_value?: number;
-    price_to_book?: number;
-    // ... etc (todos los campos que tienes en backend)
-  }
+export interface Stock {
+  symbol: string;
+  name: string;
+  current_price: number;
+  sector: string;
+  market_cap: number | null;
+  pe_ratio: number | null;
+  // Educational fields nuevos:
+  eps?: number;
+  beta?: number;
+  dividend_yield?: number;
+  book_value?: number;
+  price_to_book?: number;
+  // ... etc (todos los campos que tienes en backend)
+}
 
 export interface Holding {
+  id?: string;
+  portfolio_id?: string;
   symbol: string;
   shares: number;
   average_price: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Portfolio {
+  id?: string;
   user_id: string;
   cash_balance: number;
-  holdings: Record<string, Holding>;
-  total_holdings: number;
-  created_at: string;
+  created_at?: string;
+  updated_at?: string;
+  // Holdings are now loaded separately, not embedded
 }
 
 export interface PortfolioSummary {
+  id?: string;
   user_id: string;
   cash_balance: number;
   total_invested: number;
@@ -65,17 +71,9 @@ export interface PortfolioSummary {
   total_unrealized_pnl: number;
   total_unrealized_pnl_percent: number;
   holdings_count: number;
-  holdings: Record<string, {
-    symbol: string;
-    shares: number;
-    average_price: number;
-    current_price: number;
-    invested_value: number;
-    current_value: number;
-    unrealized_pnl: number;
-    unrealized_pnl_percent: number;
-  }>;
-  created_at: string;
+  holdings: Holding[];  // Changed from Record to array
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface LearningContent {
@@ -98,15 +96,133 @@ export interface RiskAnalysis {
   volatility_score: number;
   learning_trigger: string | null;
   risk_factors: string[];
-  recommendation: string;
+  recommendations: string[];
+}
+
+// Authentication interfaces
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+  user: User;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  provider: string;
+  avatar_url?: string;
+  is_active: boolean;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
 }
 
 export class CapitalCraftAPI {
+  // Authentication methods
+  static async login(credentials: LoginRequest): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Login failed');
+    }
+
+    return response.json();
+  }
+
+  static async register(userData: RegisterRequest): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Registration failed');
+    }
+
+    return response.json();
+  }
+
+  static async refreshToken(refreshData: RefreshTokenRequest): Promise<AuthResponse> {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(refreshData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Token refresh failed');
+    }
+
+    return response.json();
+  }
+
+  static async getCurrentUser(accessToken: string): Promise<User> {
+    const response = await fetch(`${API_BASE}/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to get current user');
+    }
+
+    return response.json();
+  }
+
+  static async logout(): Promise<void> {
+    const response = await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Logout failed');
+    }
+  }
+
+  static getGoogleOAuthUrl(): string {
+    return `${API_BASE}/auth/google`;
+  }
+
+  // Portfolio methods - Updated for new PostgreSQL structure
   static async getPortfolio(userId: string): Promise<Portfolio> {
     const response = await fetch(`${API_BASE}/portfolio/${userId}`);
     if (!response.ok) {
       throw new Error('Failed to fetch portfolio');
     }
+    
+    // Return the new Portfolio structure directly
     return response.json();
   }
 
@@ -115,6 +231,8 @@ export class CapitalCraftAPI {
     if (!response.ok) {
       throw new Error('Failed to fetch portfolio summary');
     }
+    
+    // Return the new PortfolioSummary structure directly
     return response.json();
   }
 
@@ -165,15 +283,14 @@ export class CapitalCraftAPI {
     return result.data; // Backend devuelve { success: true, data: {...} }
   }
 
-  // Agregar método en CapitalCraftAPI class
-static async getLearningContent(trigger: string): Promise<LearningContent> {
-  const response = await fetch(`${API_BASE}/learning/content/${trigger}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch learning content');
+  static async getLearningContent(trigger: string): Promise<LearningContent> {
+    const response = await fetch(`${API_BASE}/learning/content/${trigger}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch learning content');
+    }
+    const result = await response.json();
+    return result.data;
   }
-  const result = await response.json();
-  return result.data;
-}
 
   static async searchStocks(query: string, limit: number = 10): Promise<Stock[]> {
     const response = await fetch(`${API_BASE}/stocks/search?q=${encodeURIComponent(query)}&limit=${limit}`);
@@ -184,4 +301,3 @@ static async getLearningContent(trigger: string): Promise<LearningContent> {
     return result.results || [];
   }
 }
-

@@ -61,13 +61,16 @@ class DatabaseReset:
     async def _drop_all_tables(self):
         """Drop all tables including alembic version"""
         async with self.db_config.engine.begin() as conn:
-            # Drop all tables with CASCADE
-            await conn.execute(text("""
-                DROP SCHEMA IF EXISTS public CASCADE;
-                CREATE SCHEMA public;
-                GRANT ALL ON SCHEMA public TO capital_craft_user;
-                GRANT ALL ON SCHEMA public TO public;
-            """))
+            # Execute commands separately to avoid asyncpg multiple command error
+            print("🗑️  Dropping public schema...")
+            await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
+            
+            print("🏗️  Creating public schema...")
+            await conn.execute(text("CREATE SCHEMA public;"))
+            
+            print("🔐 Setting permissions...")
+            await conn.execute(text("GRANT ALL ON SCHEMA public TO capital_craft_user;"))
+            await conn.execute(text("GRANT ALL ON SCHEMA public TO public;"))
     
     async def _create_tables(self):
         """Create all tables from SQLAlchemy models"""
