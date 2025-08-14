@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   PieChart, 
@@ -23,8 +24,8 @@ interface SidebarProps {
 }
 
 const navigation = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-  { id: 'portfolio', name: 'Portfolio', icon: PieChart },
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { id: 'portfolio', name: 'Portfolio', icon: PieChart, href: '/' },
   { id: 'search', name: 'Stock Search', icon: Search },
   { id: 'learn', name: 'Learn', icon: BookOpen },
   { id: 'achievements', name: 'Achievements', icon: Trophy },
@@ -40,9 +41,14 @@ const secondaryNavigation = [
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
 
-  const handleTabChange = (tabId: string) => {
-    onTabChange(tabId);
+  const handleTabChange = (tabId: string, href?: string) => {
+    if (href) {
+      router.push(href);
+    } else {
+      onTabChange(tabId);
+    }
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
@@ -101,7 +107,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           return (
             <button
               key={item.id}
-              onClick={() => handleTabChange(item.id)}
+              onClick={() => handleTabChange(item.id, item.href)}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive 
                   ? 'bg-blue-600 text-white' 

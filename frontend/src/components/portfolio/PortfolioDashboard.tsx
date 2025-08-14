@@ -6,6 +6,11 @@ import { PieChart } from 'lucide-react';
 import { CapitalCraftAPI, PortfolioSummary, Holding } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import  HoldingCard  from './HoldingCard';
+import { MetricCards } from './MetricCards';
+import PortfolioChart from './PortfolioChart';
+import PerformanceTimeline from './PerformanceTimeline';
+import PortfolioHealthScore from './PortfolioHealthScore';
+import TopPerformerBadge from './TopPerformerBadge';
 import { BuyStockModal } from '@/components/modals/BuyStockModal';
 import { SellStockModal } from '@/components/modals/SellStockModal';
 import { LearningAlert } from '@/components/learning/LearningAlert';
@@ -130,16 +135,79 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
               <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
               <p className="text-gray-600">Here&apos;s how your portfolio is performing today.</p>
             </div>
-            {riskAnalysis?.learning_trigger && (
-                <div className="mb-6">
-                  <LearningAlert
-                    trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
-                    portfolioRisk={riskAnalysis.risk_level}
-                    volatilityScore={riskAnalysis.volatility_score}
-                    onDismiss={() => setRiskAnalysis(null)}
-                    onLearnMore={() => setShowLearningModal(true)} 
-                  />
+
+            {/* Beautiful Metric Cards */}
+            {summary && (
+              <MetricCards
+                cashBalance={summary.cash_balance}
+                totalPortfolioValue={summary.total_portfolio_value}
+                totalUnrealizedPnl={summary.total_unrealized_pnl}
+                totalUnrealizedPnlPercent={summary.total_unrealized_pnl_percent}
+                holdingsCount={summary.holdings_count}
+                loading={loading}
+              />
+            )}
+
+            {/* Holdings and Chart */}
+            {summary ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Section - Holdings and Educational Components (2/3 width) */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Educational Components Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <PortfolioHealthScore
+                      holdings={summary.holdings}
+                      cashBalance={summary.cash_balance}
+                      totalPortfolioValue={summary.total_portfolio_value}
+                      totalPnl={summary.total_unrealized_pnl}
+                      investedAmount={summary.total_portfolio_value - summary.cash_balance}
+                      loading={loading}
+                    />
+                    <TopPerformerBadge
+                      holdings={summary.holdings}
+                      loading={loading}
+                    />
+                  </div>
+                  
+                  {/* Holdings Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Object.values(summary.holdings).map((holding) => (
+                      <HoldingCard
+                        key={holding.symbol}
+                        symbol={holding.symbol}
+                        shares={holding.shares}
+                        averagePrice={holding.average_price}
+                        currentPrice={holding.current_price || 0}
+                        currentValue={holding.current_value || 0}
+                        unrealizedPnl={holding.unrealized_pnl || 0}
+                        unrealizedPnlPercent={holding.unrealized_pnl_percent || 0}
+                      />
+                    ))}
+                  </div>
                 </div>
+                
+                {/* Chart Section - Right Column (1/3 width) */}
+                <div className="lg:col-span-1 space-y-4">
+                  <PortfolioChart
+                    cashBalance={summary.cash_balance}
+                    totalPortfolioValue={summary.total_portfolio_value}
+                    loading={loading}
+                  />
+                  <PerformanceTimeline loading={loading} />
+                </div>
+              </div>
+            ) : null}
+
+            {riskAnalysis?.learning_trigger && (
+              <div className="mb-6">
+                <LearningAlert
+                  trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
+                  portfolioRisk={riskAnalysis.risk_level}
+                  volatilityScore={riskAnalysis.volatility_score}
+                  onDismiss={() => setRiskAnalysis(null)}
+                  onLearnMore={() => setShowLearningModal(true)} 
+                />
+              </div>
             )}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -166,21 +234,6 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
                 >
                   Buy Your First Stock
                 </button>
-              </div>
-            ) : summary ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Object.values(summary.holdings).map((holding) => (
-                  <HoldingCard
-                    key={holding.symbol}
-                    symbol={holding.symbol}
-                    shares={holding.shares}
-                    averagePrice={holding.average_price}
-                    currentPrice={holding.current_price || 0}
-                    currentValue={holding.current_value || 0}
-                    unrealizedPnl={holding.unrealized_pnl || 0}
-                    unrealizedPnlPercent={holding.unrealized_pnl_percent || 0}
-                  />
-                ))}
               </div>
             ) : null}
 
