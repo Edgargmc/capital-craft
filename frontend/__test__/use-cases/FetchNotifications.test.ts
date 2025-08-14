@@ -57,6 +57,7 @@ describe('FetchNotificationsUseCase', () => {
         }
       ],
       totalCount: 2,
+      unreadCount: 1,
       userId: 'demo'
     };
 
@@ -92,6 +93,7 @@ describe('FetchNotificationsUseCase', () => {
       const emptyList: NotificationList = {
         items: [],
         totalCount: 0,
+        unreadCount: 0,
         userId: 'demo'
       };
 
@@ -174,6 +176,7 @@ describe('FetchNotificationsUseCase', () => {
           priority: 'medium'
         }],
         totalCount: 1,
+        unreadCount: 1,
         userId: 'demo'
       };
 
@@ -205,7 +208,7 @@ describe('FetchNotificationsUseCase', () => {
         () => new Promise(resolve => 
           setTimeout(() => resolve({
             success: true,
-            data: { items: [], totalCount: 0, userId: 'demo' }
+            data: { items: [], totalCount: 0, unreadCount: 0, userId: 'demo' }
           }), 100)
         )
       );

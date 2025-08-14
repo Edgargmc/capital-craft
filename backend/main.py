@@ -41,6 +41,13 @@ import os
 from dotenv import load_dotenv
 
 
+# Load environment variables and verify
+env_loaded = load_dotenv()
+print(f" .env file loaded: {env_loaded}")
+print(f" Current working directory: {os.getcwd()}")
+print(f" USE_SMART_NOTIFICATION_REPOSITORY from env: {os.getenv('USE_SMART_NOTIFICATION_REPOSITORY', 'NOT_SET')}")
+print(f" NOTIFICATION_STORAGE from env: {os.getenv('NOTIFICATION_STORAGE', 'NOT_SET')}")
+
 load_dotenv()
 
 
@@ -100,28 +107,28 @@ def get_stock(symbol: str):
             "market_cap": stock.market_cap,
             "pe_ratio": float(stock.pe_ratio) if stock.pe_ratio else None,
             
-            # 🎯 Enhanced fundamental data
+            # Enhanced fundamental data
             "eps": float(stock.eps) if stock.eps else None,
             "book_value": float(stock.book_value) if stock.book_value else None,
             "price_to_book": float(stock.price_to_book) if stock.price_to_book else None,
             "profit_margin": float(stock.profit_margin) if stock.profit_margin else None,
             
-            # 🎯 Dividend data
+            # Dividend data
             "dividend_yield": float(stock.dividend_yield) if stock.dividend_yield else None,
             "dividend_per_share": float(stock.dividend_per_share) if stock.dividend_per_share else None,
             "is_dividend_stock": stock.is_dividend_stock,
             
-            # 🎯 Risk & technical
+            # Risk & technical
             "week_52_high": float(stock.week_52_high) if stock.week_52_high else None,
             "week_52_low": float(stock.week_52_low) if stock.week_52_low else None,
             "beta": float(stock.beta) if stock.beta else None,
             "current_vs_52week_range": float(stock.current_vs_52week_range) if stock.current_vs_52week_range else None,
             
-            # 🎯 Growth metrics
+            # Growth metrics
             "earnings_growth_yoy": float(stock.earnings_growth_yoy) if stock.earnings_growth_yoy else None,
             "revenue_growth_yoy": float(stock.revenue_growth_yoy) if stock.revenue_growth_yoy else None,
             
-            # 🎯 Analyst data
+            # Analyst data
             "analyst_target_price": float(stock.analyst_target_price) if stock.analyst_target_price else None,
             "analyst_rating_buy": stock.analyst_rating_buy,
             "analyst_rating_hold": stock.analyst_rating_hold,
@@ -196,7 +203,81 @@ from app.infrastructure.dependency_injection import (
 )
 from app.infrastructure.auth.dependencies import get_current_user_id
 
-# ✅ FIXED: Specific routes MUST come before generic routes
+# Authenticated notification count endpoint - Lightweight for campanita
+@app.get("/auth/notifications/me/unread-count")
+async def get_my_unread_notification_count(
+    current_user_id: str = Depends(get_current_user_id),
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
+    """Get unread notification count for authenticated user - Lightweight endpoint for campanita"""
+    try:
+        # Get only recent notifications (last 50) for performance
+        notifications = await repository.get_user_notifications(
+            user_id=current_user_id,
+            limit=50
+        )
+        
+        # Count only unread and non-dismissed
+        unread_count = sum(1 for n in notifications if not n.is_read and not n.dismissed)
+        
+        return {
+            "success": True,
+            "unread_count": unread_count,
+            "user_id": current_user_id
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving unread count: {str(e)}"
+        )
+
+# Authenticated notifications endpoint - Clean Architecture + JWT
+@app.get("/auth/notifications/me")
+async def get_my_notifications(
+    current_user_id: str = Depends(get_current_user_id),
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
+    """Get current user's notifications - Authenticated endpoint following portfolio pattern"""
+    try:
+        # Use authenticated user_id from JWT token (same pattern as /portfolio/me)
+        notifications = await repository.get_user_notifications(
+            user_id=current_user_id,
+            limit=50
+        )
+        
+        # Calculate unread notifications count for campanita
+        unread_notifications = [n for n in notifications if not n.is_read and not n.dismissed]
+        
+        # Transform to response format (same as existing endpoint)
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": notification.id,
+                    "title": notification.title,
+                    "message": notification.message,
+                    "type": notification.notification_type,
+                    "priority": notification.priority,
+                    "isRead": notification.is_read,
+                    "dismissed": notification.dismissed,
+                    "createdAt": notification.created_at.isoformat() if notification.created_at else None,
+                    "deepLink": notification.deep_link,
+                    "triggerType": notification.trigger_type.value,
+                    "triggerData": notification.trigger_data
+                }
+                for notification in notifications
+            ],
+            "total_count": len(notifications),
+            "unread_count": len(unread_notifications),  # 🔔 NEW: Count for campanita
+            "user_id": current_user_id  # Include authenticated user_id for verification
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving notifications: {str(e)}"
+        )
+
+# FIXED: Specific routes MUST come before generic routes
 @app.get("/portfolio/me")
 async def get_my_portfolio(
     current_user_id: str = Depends(get_current_user_id),
@@ -207,7 +288,7 @@ async def get_my_portfolio(
         # Use authenticated user_id from JWT token
         portfolio = await get_or_create_portfolio.execute(current_user_id)
         
-        # ✅ NEW: Calculate current values using GetPortfolioSummary
+        # Calculate current values using GetPortfolioSummary
         get_stock_data = GetStockDataUseCase(stock_data_provider)
         portfolio_summary_use_case = GetPortfolioSummary(get_stock_data)
         summary = portfolio_summary_use_case.execute(portfolio)
@@ -232,7 +313,7 @@ async def get_my_portfolio_risk_analysis(
         
         # Educational trigger for learning opportunities
         if risk_analysis.learning_trigger:
-            print(f"🎓 Learning opportunity triggered for user {current_user_id}: {risk_analysis.learning_trigger}")
+            print(f" Learning opportunity triggered for user {current_user_id}: {risk_analysis.learning_trigger}")
         
         return {
             "user_id": portfolio.user_id,
@@ -301,7 +382,7 @@ async def buy_stock(
 ):
     """Clean Architecture: Buy stocks with centralized logic"""
     try:
-        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
+        # CLEAN ARCHITECTURE: Use case handles everything internally
         get_stock_data = GetStockDataUseCase(stock_data_provider)
         buy_stock_use_case = BuyStock(
             get_stock_data, 
@@ -375,7 +456,7 @@ async def sell_stock(
 ):
     """Clean Architecture: Sell stocks with centralized logic"""
     try:
-        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
+        # CLEAN ARCHITECTURE: Use case handles everything internally
         get_stock_data = GetStockDataUseCase(stock_data_provider)
         sell_stock_use_case = SellStock(
             get_stock_data,
@@ -855,6 +936,108 @@ async def get_notification_by_id(
             detail=f"Error retrieving notification: {str(e)}"
         )
 
+# Authenticated mark as read endpoint - Clean Architecture + JWT
+@app.patch("/auth/notifications/{notification_id}/read")
+async def mark_my_notification_as_read(
+    notification_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    use_case: MarkNotificationAsReadUseCase = Depends(get_mark_notification_as_read_use_case),
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
+    """
+    Mark notification as read for authenticated user - with ownership validation
+    Following Clean Architecture with JWT authentication
+    """
+    try:
+        # First, validate ownership - notification must belong to authenticated user
+        notification = await repository.get_notification_by_id(notification_id)
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        if notification.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Access denied: notification belongs to another user")
+        
+        # Execute use case (same as existing endpoint)
+        updated_notification = await use_case.execute(notification_id)
+        
+        # 🔔 NEW: Get updated unread count after marking as read (for campanita)
+        updated_notifications = await repository.get_user_notifications(current_user_id, limit=50)
+        unread_count = sum(1 for n in updated_notifications if not n.is_read and not n.dismissed)
+        
+        return {
+            "success": True,
+            "message": "Notification marked as read",
+            "data": {
+                "id": updated_notification.id,
+                "userId": updated_notification.user_id,
+                "title": updated_notification.title,
+                "message": updated_notification.message,
+                "isRead": updated_notification.is_read,
+                "dismissed": updated_notification.dismissed,
+                "createdAt": updated_notification.created_at.isoformat() if updated_notification.created_at else None,
+                "updatedAt": updated_notification.updated_at.isoformat() if updated_notification.updated_at else None
+            },
+            "unread_count": unread_count  # 🔔 NEW: Updated count for campanita
+        }
+    except MarkNotificationNotFoundError:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    except MarkNotificationAlreadyDismissedError:
+        raise HTTPException(status_code=400, detail="Cannot modify dismissed notification")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error marking notification as read: {str(e)}"
+        )
+
+# Authenticated dismiss endpoint - Clean Architecture + JWT
+@app.delete("/auth/notifications/{notification_id}/dismiss")
+async def dismiss_my_notification(
+    notification_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    use_case: DismissNotificationUseCase = Depends(get_dismiss_notification_use_case),
+    repository: NotificationRepository = Depends(get_notification_repository)
+):
+    """
+    Dismiss notification permanently for authenticated user - with ownership validation
+    Following Clean Architecture with JWT authentication
+    """
+    try:
+        # First, validate ownership - notification must belong to authenticated user
+        notification = await repository.get_notification_by_id(notification_id)
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        if notification.user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Access denied: notification belongs to another user")
+        
+        # Execute use case (same as existing endpoint)
+        dismissed_notification = await use_case.execute(notification_id)
+        
+        # 🔔 NEW: Get updated unread count after dismissing (for campanita)
+        updated_notifications = await repository.get_user_notifications(current_user_id, limit=50)
+        unread_count = sum(1 for n in updated_notifications if not n.is_read and not n.dismissed)
+        
+        return {
+            "success": True,
+            "message": "Notification dismissed successfully",
+            "data": {
+                "id": dismissed_notification.id,
+                "userId": dismissed_notification.user_id,
+                "dismissed": dismissed_notification.dismissed,
+                "updatedAt": dismissed_notification.updated_at.isoformat() if dismissed_notification.updated_at else None
+            },
+            "unread_count": unread_count  # 🔔 NEW: Updated count for campanita
+        }
+    except DismissNotificationNotFoundError:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    except DismissNotificationAlreadyDismissedError:
+        raise HTTPException(status_code=400, detail="Notification is already dismissed")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error dismissing notification: {str(e)}"
+        )
+
 # Enhanced Health check endpoint with Clean Architecture status
 @app.get("/health")
 def health_check():
@@ -1007,7 +1190,7 @@ async def buy_stock(
 ):
     """Clean Architecture: Buy stocks with centralized logic"""
     try:
-        # ✅ CLEAN ARCHITECTURE: Use case handles everything internally
+        # CLEAN ARCHITECTURE: Use case handles everything internally
         get_stock_data = GetStockDataUseCase(stock_data_provider)
         buy_stock_use_case = BuyStock(
             get_stock_data, 

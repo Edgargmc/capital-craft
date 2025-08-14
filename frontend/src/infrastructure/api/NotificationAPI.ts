@@ -2,13 +2,14 @@
 // Infrastructure layer - External API communication
 
 import {
-  Notification,
+  Notification as DomainNotification,
   NotificationList,
   NotificationListEntity,
   NotificationListApiResponse,
   NotificationApiResponse,
   NotificationEntity,
   Result,
+  NotificationUpdateResult,
   NotificationError
 } from '../../entities/Notification';
 
@@ -24,6 +25,22 @@ import {
   IBulkNotificationRepository 
 } from '../../use-cases/MarkAllNotificationsAsRead';
 
+import { 
+  IAuthenticatedNotificationRepository 
+} from '../../use-cases/FetchMyNotifications';
+
+import { 
+  IAuthenticatedNotificationUpdateRepository 
+} from '../../use-cases/MarkMyNotificationAsRead';
+
+import { 
+  IAuthenticatedNotificationDismissRepository 
+} from '../../use-cases/DismissMyNotification';
+
+import { 
+  IAuthenticatedBulkNotificationRepository 
+} from '../../use-cases/MarkAllMyNotificationsAsRead';
+
 // Configuration interface
 export interface NotificationAPIConfig {
   baseUrl: string;
@@ -35,11 +52,19 @@ export interface NotificationAPIConfig {
 interface UpdateNotificationApiResponse {
   success: boolean;
   data: NotificationApiResponse;
+  unread_count?: number;  // 🔔 NEW: Backend now returns updated count
   message?: string;
 }
 
 // Main NotificationAPI class implementing all repository interfaces
-export class NotificationAPI implements INotificationRepository, INotificationUpdateRepository, IBulkNotificationRepository {
+export class NotificationAPI implements 
+  INotificationRepository, 
+  INotificationUpdateRepository, 
+  IBulkNotificationRepository, 
+  IAuthenticatedNotificationRepository,
+  IAuthenticatedNotificationUpdateRepository,
+  IAuthenticatedNotificationDismissRepository,
+  IAuthenticatedBulkNotificationRepository {
   private readonly baseUrl: string;
   private readonly timeout: number;
   private readonly retries: number;
@@ -96,7 +121,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
             data: null
           };
         }
-        return this.handleHttpError<Notification | null>(response, 'find notification by id');
+        return this.handleHttpError<DomainNotification | null>(response, 'find notification by id');
       }
 
       const apiResponse = await response.json();
@@ -132,7 +157,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
   async updateStatus(
     notificationId: string, 
     status: 'read' | 'dismissed'
-  ): Promise<Result<Notification>> {
+  ): Promise<Result<DomainNotification>> {
     try {
       let url: string;
       let method: string;
@@ -160,7 +185,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
       });
 
       if (!response.ok) {
-        return this.handleHttpError<Notification>(response, 'update notification status');
+        return this.handleHttpError<DomainNotification>(response, 'update notification status');
       }
 
       const apiResponse = await response.json();
@@ -184,7 +209,7 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
             id: notificationId,
             status: status === 'read' ? 'read' : 'dismissed',
             isRead: status === 'read'
-          } as Notification
+          } as DomainNotification
         };
       }
 
@@ -237,6 +262,203 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
     } catch (error) {
       return this.handleNetworkError(error, 'mark all notifications as read');
     }
+  }
+
+  // ========================================
+  // AUTHENTICATED METHODS - Following JWT pattern from backend
+  // Clean Architecture: Infrastructure layer for authenticated operations
+  // ========================================
+
+  /**
+   * Fetch notifications for authenticated user
+   * Uses JWT token from localStorage automatically
+   * Follows same pattern as existing fetchByUserId but authenticated
+   */
+  async fetchMyNotifications(): Promise<Result<NotificationList>> {
+    const url = `${this.baseUrl}/auth/notifications/me`;
+    
+    try {
+      const response = await this.fetchWithRetryAuth(url);
+      
+      if (!response.ok) {
+        return this.handleHttpError(response, 'fetch my notifications');
+      }
+
+      // Parse JSON only once
+      const jsonData = await response.json();
+      console.log('📦 Authenticated API Response:', jsonData);
+      
+      // Validate API response structure (same validation as existing method)
+      if (!this.isValidNotificationListResponse(jsonData)) {
+        return {
+          success: false,
+          error: 'Invalid API response format',
+          code: 'INVALID_API_RESPONSE'
+        };
+      }
+
+      // Transform using entity layer (same transformation as existing method)
+      const result = NotificationListEntity.fromApiResponse(jsonData);
+      return result;
+
+    } catch (error) {
+      return this.handleNetworkError(error, 'fetch my notifications');
+    }
+  }
+
+  /**
+   * Mark notification as read for authenticated user
+   * Uses JWT token and validates ownership automatically
+   */
+  async markMyNotificationAsRead(notificationId: string): Promise<NotificationUpdateResult<DomainNotification>> {
+    try {
+      const url = `${this.baseUrl}/auth/notifications/${notificationId}/read`;
+      const response = await this.fetchWithRetryAuth(url, {
+        method: 'PATCH'
+      });
+
+      if (!response.ok) {
+        return this.handleHttpError<DomainNotification>(response, 'mark my notification as read');
+      }
+
+      const apiResponse: UpdateNotificationApiResponse = await response.json();
+      
+      if (!apiResponse.success || !apiResponse.data) {
+        return {
+          success: false,
+          error: 'Failed to mark notification as read',
+          code: 'UPDATE_FAILED'
+        };
+      }
+
+      // Transform response using entity layer
+      try {
+        const notification = NotificationEntity.fromApiResponse(apiResponse.data);
+        return {
+          success: true,
+          data: notification,
+          unreadCount: apiResponse.unread_count  // 🔔 NEW: Include backend count
+        };
+      } catch (entityError) {
+        return {
+          success: false,
+          error: `Entity transformation failed: ${entityError}`,
+          code: 'TRANSFORMATION_ERROR'
+        };
+      }
+      
+    } catch (error) {
+      return this.handleNetworkError(error, 'mark my notification as read');
+    }
+  }
+
+  /**
+   * Dismiss notification for authenticated user
+   * Uses JWT token and validates ownership automatically
+   */
+  async dismissMyNotification(notificationId: string): Promise<NotificationUpdateResult<DomainNotification>> {
+    try {
+      const url = `${this.baseUrl}/auth/notifications/${notificationId}/dismiss`;
+      const response = await this.fetchWithRetryAuth(url, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        return this.handleHttpError<DomainNotification>(response, 'dismiss my notification');
+      }
+
+      const apiResponse: UpdateNotificationApiResponse = await response.json();
+      
+      if (!apiResponse.success || !apiResponse.data) {
+        return {
+          success: false,
+          error: 'Failed to dismiss notification',
+          code: 'UPDATE_FAILED'
+        };
+      }
+
+      // Transform response using entity layer
+      try {
+        const notification = NotificationEntity.fromApiResponse(apiResponse.data);
+        return {
+          success: true,
+          data: notification,
+          unreadCount: apiResponse.unread_count  // 🔔 NEW: Include backend count
+        };
+      } catch (entityError) {
+        return {
+          success: false,
+          error: `Entity transformation failed: ${entityError}`,
+          code: 'TRANSFORMATION_ERROR'
+        };
+      }
+      
+    } catch (error) {
+      return this.handleNetworkError(error, 'dismiss my notification');
+    }
+  }
+
+  /**
+   * Mark all notifications as read for authenticated user
+   * Uses JWT token, no userId needed (extracted from token)
+   */
+  async markAllMyNotificationsAsRead(): Promise<Result<{ markedCount: number }>> {
+    try {
+      const url = `${this.baseUrl}/auth/notifications/mark-all-read`;
+      const response = await this.fetchWithRetryAuth(url, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        return this.handleHttpError(response, 'mark all my notifications as read');
+      }
+
+      const apiResponse = await response.json();
+      
+      if (!apiResponse.success) {
+        return {
+          success: false,
+          error: 'Failed to mark all notifications as read',
+          code: 'BULK_UPDATE_FAILED'
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          markedCount: apiResponse.data.markedCount || 0
+        }
+      };
+      
+    } catch (error) {
+      return this.handleNetworkError(error, 'mark all my notifications as read');
+    }
+  }
+
+  /**
+   * Fetch with retry and JWT authentication
+   * Helper method for authenticated requests
+   */
+  private async fetchWithRetryAuth(url: string, options: RequestInit = {}): Promise<Response> {
+    // Get JWT token from localStorage (same pattern as other authenticated APIs)
+    const token = localStorage.getItem('access_token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    // Add Authorization header
+    const authOptions: RequestInit = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+      }
+    };
+
+    // Use existing retry logic with auth headers
+    return this.fetchWithRetry(url, authOptions);
   }
 
   // HTTP utilities with retry logic
@@ -442,7 +664,7 @@ export class NotificationAPIExtension {
   }
 
   // Method to add to existing CapitalCraftAPI class  
-  static async markNotificationAsRead(notificationId: string): Promise<Notification> {
+  static async markNotificationAsRead(notificationId: string): Promise<DomainNotification> {
     const api = CapitalCraftNotificationAPI.getInstance();
     const result = await api.updateStatus(notificationId, 'read');
     
@@ -454,7 +676,7 @@ export class NotificationAPIExtension {
   }
 
   // Method to add to existing CapitalCraftAPI class
-  static async dismissNotification(notificationId: string): Promise<Notification> {
+  static async dismissNotification(notificationId: string): Promise<DomainNotification> {
     const api = CapitalCraftNotificationAPI.getInstance();
     const result = await api.updateStatus(notificationId, 'dismissed');
     

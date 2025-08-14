@@ -80,10 +80,12 @@ class DismissNotificationUseCase:
                 f"Notification {notification_id} cannot be dismissed"
             )
         
-        # Dismiss using domain method
+        # Dismiss using repository method (direct UPDATE)
+        success = await self.notification_repository.dismiss_notification(notification_id)
+        
+        if not success:
+            raise NotificationNotFoundError(f"Failed to dismiss notification {notification_id}")
+        
+        # Update the entity state and return
         notification.dismiss()
-        
-        # Persist changes
-        await self.notification_repository.save_notification(notification)
-        
         return notification

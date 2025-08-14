@@ -105,37 +105,58 @@ class AnalyzePortfolioRisk:
         """
         Generate contextual notifications based on portfolio analysis
         Baby step: Focus on most impactful triggers only
+        Enhanced: Prevent duplicate notifications
         """
         notifications_count = 0
         
+        # Check for recent similar notifications to prevent duplicates
+        recent_notifications = await self._get_recent_notifications(user_id)
+        
         # 1. Risk level change notification - enhanced to include MEDIUM
         if risk_level in ["HIGH", "MEDIUM"]:
-            notification = await self.notification_service.execute(
-                user_id=user_id,
-                trigger_type=NotificationTriggerType.RISK_CHANGE,
-                trigger_data={
-                    "new_risk_level": risk_level,
-                    "volatility_score": volatility_score,
-                    "risk_level_changed": True
-                }
+            # Check if we already have a recent risk notification for this level
+            has_recent_risk_notification = any(
+                notif.trigger_type == "risk_change" and 
+                notif.trigger_data.get("new_risk_level") == risk_level
+                for notif in recent_notifications
             )
-            if notification:
-                notifications_count += 1
+            
+            if not has_recent_risk_notification:
+                notification = await self.notification_service.execute(
+                    user_id=user_id,
+                    trigger_type=NotificationTriggerType.RISK_CHANGE,
+                    trigger_data={
+                        "new_risk_level": risk_level,
+                        "volatility_score": volatility_score,
+                        "risk_level_changed": True
+                    }
+                )
+                if notification:
+                    notifications_count += 1
         
         # 2. Educational moment based on learning trigger
         if learning_trigger:
-            notification = await self.notification_service.execute(
-                user_id=user_id,
-                trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
-                trigger_data={
-                    "topic": self._get_topic_for_trigger(learning_trigger),
-                    "topic_description": self._get_topic_description(learning_trigger),
-                    "relevance_score": 0.9,  # High relevance from portfolio analysis
-                    "content_slug": learning_trigger
-                }
+            # Check if we already have a recent educational notification for this topic
+            topic = self._get_topic_for_trigger(learning_trigger)
+            has_recent_educational_notification = any(
+                notif.trigger_type == "educational_moment" and 
+                notif.trigger_data.get("topic") == topic
+                for notif in recent_notifications
             )
-            if notification:
-                notifications_count += 1
+            
+            if not has_recent_educational_notification:
+                notification = await self.notification_service.execute(
+                    user_id=user_id,
+                    trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
+                    trigger_data={
+                        "topic": topic,
+                        "topic_description": self._get_topic_description(learning_trigger),
+                        "relevance_score": 0.9,  # High relevance from portfolio analysis
+                        "content_slug": learning_trigger
+                    }
+                )
+                if notification:
+                    notifications_count += 1
         
         # 3. Portfolio-specific notifications for individual holdings
         notifications_count += await self._generate_holding_notifications(
@@ -143,6 +164,15 @@ class AnalyzePortfolioRisk:
         )
         
         return notifications_count
+
+    async def _get_recent_notifications(self, user_id: str, hours: int = 1):
+        """Get recent notifications for the user to check for duplicates"""
+        from datetime import datetime, timedelta, timezone
+        
+        # This would need to be implemented in the notification repository
+        # For now, return empty list to disable duplicate checking
+        # TODO: Implement proper duplicate detection with repository
+        return []
     
     async def _generate_holding_notifications(
         self, 

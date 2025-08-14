@@ -167,6 +167,7 @@ import {
       return {
         items: unreadNotifications,
         totalCount: unreadNotifications.length,
+        unreadCount: unreadNotifications.length,
         userId: notifications.userId
       };
     }
@@ -178,6 +179,7 @@ import {
       return {
         items: limitedNotifications,
         totalCount: limitedNotifications.length,
+        unreadCount: limitedNotifications.filter(n => !n.isRead).length,
         userId: notifications.userId
       };
     }

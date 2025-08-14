@@ -153,22 +153,53 @@ interface HeaderProps {
 export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'demo' }: HeaderProps) {
   const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const [showDesktopNotifications, setShowDesktopNotifications] = useState(false);
-  const { fetchNotifications } = useNotificationStore();
+  const { 
+    fetchNotifications, 
+    fetchMyNotifications, 
+    isAuthenticated,
+    setAuthenticated 
+  } = useNotificationStore();
 
-  // Single fetch logic for all notification bells
+  // Smart authentication detection
   useEffect(() => {
-    if (userId) {
-      // Initial fetch
-      fetchNotifications(userId);
-
-      // Poll every 30 seconds  
-      const interval = setInterval(() => {
-        fetchNotifications(userId);
-      }, 80000);
-
-      return () => clearInterval(interval);
+    // Check if user has JWT token (simple authentication check)
+    const token = localStorage.getItem('access_token');
+    const hasValidToken = token && token.length > 0;
+    
+    // Update authentication state in store
+    if (hasValidToken !== isAuthenticated) {
+      setAuthenticated(!!hasValidToken);
+      console.log('🔐 Authentication state updated:', hasValidToken ? 'authenticated' : 'not authenticated');
     }
-  }, [userId, fetchNotifications]);
+  }, [isAuthenticated, setAuthenticated]);
+
+  // Smart notification fetching - use authenticated method when possible
+  useEffect(() => {
+    const fetchNotificationsSmartly = async () => {
+      try {
+        if (isAuthenticated) {
+          console.log('🔐 Using authenticated method: fetchMyNotifications');
+          await fetchMyNotifications();
+        } else {
+          console.log('👤 User not authenticated, skipping notification fetch');
+          // Don't fetch notifications for non-authenticated users
+          // This prevents calls to /users/demo/notifications
+        }
+      } catch (error) {
+        console.error('❌ Error fetching notifications:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchNotificationsSmartly();
+
+    // Poll every 30 seconds using smart method selection
+    const interval = setInterval(() => {
+      fetchNotificationsSmartly();
+    }, 80000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, fetchMyNotifications]);
 
   if (loading || !summary) {
     return (

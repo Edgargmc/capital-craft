@@ -589,8 +589,8 @@
       "message": "Based on your portfolio, now is a great time to understand understanding how market ups and downs affect your investments.",
       "type": "education",
       "priority": "medium",
-      "isRead": false,
-      "dismissed": false,
+      "isRead": true,
+      "dismissed": true,
       "createdAt": "2025-08-14T00:38:02.569358",
       "sentAt": null,
       "deepLink": "/learning/content/volatility_basics",
@@ -600,6 +600,52 @@
         "topic_description": "understanding how market ups and downs affect your investments",
         "relevance_score": 0.9,
         "content_slug": "volatility_basics"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "44dffe08-0fce-4d8e-8f7c-5c014df81b7f",
+      "userId": "05e13723-28f7-46ee-955b-a8a54c68a8b1",
+      "title": "\ud83d\udca1 Perfect time to learn about Market Volatility",
+      "message": "Based on your portfolio, now is a great time to understand understanding how market ups and downs affect your investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": true,
+      "createdAt": "2025-08-14T12:16:50.747587",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Market Volatility",
+        "topic_description": "understanding how market ups and downs affect your investments",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics"
+      },
+      "status": "pending"
+    }
+  ],
+  "test-user-123": [
+    {
+      "id": "e4a276d4-d5d9-4e77-8e6f-0825b9f75ef4",
+      "userId": "test-user-123",
+      "title": "\ud83d\udca1 Perfect time to learn about Welcome to Capital Craft\\!",
+      "message": "Based on your portfolio, now is a great time to understand Get started with your investment journey.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-14T13:24:19.666547",
+      "sentAt": null,
+      "deepLink": "/learning/content/investment_fundamentals",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Welcome to Capital Craft\\!",
+        "topic_description": "Get started with your investment journey",
+        "relevance_score": 1.0,
+        "content_slug": "investment_fundamentals",
+        "event_type": "user_registration",
+        "is_first_time_user": true
       },
       "status": "pending"
     }

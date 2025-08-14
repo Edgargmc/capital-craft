@@ -21,7 +21,8 @@ describe('NotificationEntity', () => {
     trigger_type: 'educational_moment',
     status: 'pending',
     created_at: '2025-08-05T00:45:11.372824',
-    sent_at: null
+    sent_at: null,
+    isRead: false
   };
 
   describe('fromApiResponse', () => {
@@ -44,17 +45,17 @@ describe('NotificationEntity', () => {
 
     it('should map status correctly to isRead', () => {
       // Test with 'read' status
-      const readResponse = { ...mockApiResponse, status: 'read' as const };
+      const readResponse = { ...mockApiResponse, status: 'read' as const, isRead: true };
       const readResult = NotificationEntity.fromApiResponse(readResponse);
       expect(readResult.isRead).toBe(true);
 
       // Test with 'pending' status
-      const pendingResponse = { ...mockApiResponse, status: 'pending' as const };
+      const pendingResponse = { ...mockApiResponse, status: 'pending' as const, isRead: false };
       const pendingResult = NotificationEntity.fromApiResponse(pendingResponse);
       expect(pendingResult.isRead).toBe(false);
 
       // Test with 'sent' status
-      const sentResponse = { ...mockApiResponse, status: 'sent' as const };
+      const sentResponse = { ...mockApiResponse, status: 'sent' as const, isRead: false };
       const sentResult = NotificationEntity.fromApiResponse(sentResponse);
       expect(sentResult.isRead).toBe(false);
     });
@@ -100,7 +101,8 @@ describe('NotificationEntity', () => {
         ...mockApiResponse,
         title: '⚖️ Portfolio Risk: HIGH',
         trigger_type: 'risk_change',
-        deep_link: '/learning/content/risk_management?level=HIGH'
+        deep_link: '/learning/content/risk_management?level=HIGH',
+        isRead: false
       };
 
       const result = NotificationEntity.fromApiResponse(riskResponse);
@@ -110,7 +112,7 @@ describe('NotificationEntity', () => {
     });
 
     it('should handle invalid trigger types gracefully', () => {
-      const invalidResponse = { ...mockApiResponse, trigger_type: 'completely_invalid' };
+      const invalidResponse = { ...mockApiResponse, trigger_type: 'completely_invalid', isRead: false };
       
       // Should not throw, but map to default
       const result = NotificationEntity.fromApiResponse(invalidResponse);
@@ -119,7 +121,7 @@ describe('NotificationEntity', () => {
     });
 
     it('should handle empty title without throwing', () => {
-      const invalidResponse = { ...mockApiResponse, title: '' };
+      const invalidResponse = { ...mockApiResponse, title: '', isRead: false };
       
       // Current implementation doesn't validate, just transforms
       const result = NotificationEntity.fromApiResponse(invalidResponse);
@@ -140,7 +142,8 @@ describe('NotificationListEntity', () => {
         trigger_type: 'educational_moment',
         status: 'pending',
         created_at: '2025-08-05T00:45:11.372824',
-        sent_at: null
+        sent_at: null,
+        isRead: false
       },
       {
         id: 'notification-2',
@@ -150,10 +153,12 @@ describe('NotificationListEntity', () => {
         trigger_type: 'risk_change',
         status: 'read',
         created_at: '2025-08-05T00:30:11.372824',
-        sent_at: '2025-08-05T00:31:00.000000'
+        sent_at: '2025-08-05T00:31:00.000000',
+        isRead: true
       }
     ],
     total_count: 2,
+    unread_count: 1,
     user_id: 'demo'
   };
 
@@ -182,6 +187,7 @@ describe('NotificationListEntity', () => {
         success: true,
         data: [],
         total_count: 0,
+        unread_count: 0,
         user_id: 'demo'
       };
 
@@ -200,6 +206,7 @@ describe('NotificationListEntity', () => {
         success: true,
         data: null as any, // This will cause map to fail
         total_count: 0,
+        unread_count: 0,
         user_id: 'demo'
       };
 

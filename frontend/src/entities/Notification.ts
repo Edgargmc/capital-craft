@@ -55,20 +55,23 @@ export interface NotificationApiResponse {
   status: 'pending' | 'sent' | 'read' | 'dismissed';
   created_at: string;
   sent_at: string | null;
+  isRead: boolean;
 }
 
-// List response from API
+// List response from API - Updated with unread_count from backend
 export interface NotificationListApiResponse {
   success: boolean;
   data: NotificationApiResponse[];
   total_count: number;
+  unread_count: number;  // 🔔 NEW: From backend campanita fix
   user_id: string;
 }
 
-// Domain entity for a list of notifications
+// Domain entity for a list of notifications - Updated with unread_count
 export interface NotificationList {
   items: Notification[];
   totalCount: number;
+  unreadCount: number;  // 🔔 NEW: From backend campanita fix
   userId: string;
 }
 
@@ -78,6 +81,11 @@ export interface Result<T> {
   data?: T;
   error?: string;
   code?: string;
+}
+
+// Extended result type for notification updates (includes unread count)
+export interface NotificationUpdateResult<T> extends Result<T> {
+  unreadCount?: number;  // 🔔 NEW: For campanita updates
 }
 
 // Custom error class
@@ -120,7 +128,7 @@ export class NotificationEntity {
       triggerType: this.mapToTriggerType(apiResponse.trigger_type),
       metadata: this.extractMetadata(apiResponse),
       deepLink: apiResponse.deep_link,
-      isRead: apiResponse.status === 'read',
+      isRead: apiResponse.isRead,  // 🔧 FIXED: Use isRead field directly from API response
       status: apiResponse.status,
       createdAt: apiResponse.created_at,
       priority: this.determinePriority(apiResponse.trigger_type)
@@ -235,6 +243,7 @@ export class NotificationListEntity {
         data: {
           items: notifications,
           totalCount: apiResponse.total_count,
+          unreadCount: apiResponse.unread_count,  // 🔔 NEW: Use backend count
           userId: apiResponse.user_id
         }
       };

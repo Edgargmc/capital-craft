@@ -19,14 +19,21 @@ interface NotificationDropdownProps {
   userId?: string;
 }
 
-export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
+export function NotificationDropdown({ onClose, userId }: NotificationDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
     isLoading,
+    isAuthenticated,
+    getUnreadCount,  // 🔧 Add the function
+    // Original methods (backward compatibility)
     markAsRead,
     dismiss,
     markAllAsRead,
+    // New authenticated methods
+    markMyNotificationAsRead,
+    dismissMyNotification,
+    markAllMyNotificationsAsRead,
     usingMockData
   } = useNotificationStore();
 
@@ -35,6 +42,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     console.log('🔧 NotificationDropdown rendered:', {
       notificationsCount: notifications?.length || 0,
       isLoading,
+      isAuthenticated,
       usingMockData
     });
   }
@@ -95,10 +103,27 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     return date.toLocaleDateString();
   };
 
-  // Handle notification click
+  // Handle notification click - Smart method selection
   const handleNotificationClick = async (notification: Notification) => {
+    console.log('🖱️ Notification clicked:', notification.id, 'isAuthenticated:', isAuthenticated);
+    
     if (!notification.isRead) {
-      await markAsRead(notification.id);
+      try {
+        // Use authenticated method if user is authenticated, otherwise use original method
+        if (isAuthenticated) {
+          console.log('🔐 Using authenticated method: markMyNotificationAsRead');
+          await markMyNotificationAsRead(notification.id);
+        } else {
+          console.log('👤 Using original method: markAsRead (requires userId)');
+          if (userId) {
+            await markAsRead(notification.id);
+          } else {
+            console.warn('⚠️ Cannot mark as read: no userId provided for non-authenticated user');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error marking notification as read:', error);
+      }
     }
     
     // Navigate to deep link if available
@@ -109,23 +134,45 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
     }
   };
 
-  // Handle mark all as read
+  // Handle mark all as read - Smart method selection
   const handleMarkAllAsRead = async () => {
-    if (!notifications) return;
-    
-    // Use fallback userId 'demo' following Clean Architecture pattern
-    const currentUserId = 'demo'; // TODO: Get from auth context
-    await markAllAsRead(currentUserId);
+    try {
+      // Use authenticated method if user is authenticated, otherwise use original method
+      if (isAuthenticated) {
+        console.log('🔐 Using authenticated method: markAllMyNotificationsAsRead');
+        await markAllMyNotificationsAsRead();
+      } else {
+        console.log('👤 Using original method: markAllAsRead (requires userId)');
+        if (userId) {
+          await markAllAsRead(userId);
+        } else {
+          console.warn('⚠️ Cannot mark all as read: no userId provided for non-authenticated user');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error marking all notifications as read:', error);
+    }
   };
 
-  // Handle dismiss notification
+  // Handle dismiss notification - Smart method selection
   const handleDismiss = async (e: React.MouseEvent | React.KeyboardEvent, notificationId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    await dismiss(notificationId);
+    try {
+      // Use authenticated method if user is authenticated, otherwise use original method
+      if (isAuthenticated) {
+        console.log('🔐 Using authenticated method: dismissMyNotification');
+        await dismissMyNotification(notificationId);
+      } else {
+        console.log('👤 Using original method: dismiss');
+        await dismiss(notificationId);
+      }
+    } catch (error) {
+      console.error('❌ Error dismissing notification:', error);
+    }
   };
 
-  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
+  const unreadCount = getUnreadCount(); // 🔧 Use store function instead of manual calculation
 
   return (
     <div 
@@ -169,6 +216,15 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
         ) : notifications && notifications.length > 0 ? (
           <div className="divide-y divide-gray-100">
             {notifications.map((notification, index) => {
+              // DEBUG: Log notification status for styling verification
+              console.log(`🔍 Notification ${index + 1}:`, {
+                id: notification.id,
+                title: notification.title.substring(0, 30) + '...',
+                isRead: notification.isRead,
+                shouldHaveBlueBackground: !notification.isRead,
+                appliedClasses: !notification.isRead ? 'bg-blue-50 hover:bg-blue-100' : 'default'
+              });
+              
               return (
                 <div
                   key={notification.id}
@@ -223,7 +279,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsRead(notification.id);
+                                handleNotificationClick(notification);
                               }}
                               className="p-1 rounded-full hover:bg-blue-100 cursor-pointer"
                               title="Mark as read"
@@ -232,7 +288,7 @@ export function NotificationDropdown({ onClose }: NotificationDropdownProps) {
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
                                   e.stopPropagation();
-                                  markAsRead(notification.id);
+                                  handleNotificationClick(notification);
                                 }
                               }}
                             >

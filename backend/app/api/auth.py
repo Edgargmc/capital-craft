@@ -13,7 +13,13 @@ from app.use_cases.authenticate_user import AuthenticateUserUseCase
 from app.infrastructure.auth.jwt_manager import jwt_manager, TokenPair
 from app.infrastructure.auth.google_oauth import google_oauth_client, GoogleUserInfo
 from app.core.entities.user import AuthProvider
-from app.infrastructure.dependency_injection import get_create_user_use_case, get_authenticate_user_use_case
+from app.infrastructure.dependency_injection import (
+    get_create_user_use_case, 
+    get_authenticate_user_use_case,
+    get_generate_notification_use_case
+)
+from app.use_cases.generate_notification import GenerateNotificationUseCase
+from app.core.entities.notification import NotificationTriggerType
 
 
 # Pydantic models for API
@@ -56,7 +62,8 @@ auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 @auth_router.post("/register", response_model=TokenResponse)
 async def register(
     request: RegisterRequest,
-    create_user_use_case: CreateUserUseCase = Depends(get_create_user_use_case)
+    create_user_use_case: CreateUserUseCase = Depends(get_create_user_use_case),
+    notification_service: GenerateNotificationUseCase = Depends(get_generate_notification_use_case)
 ):
     """
     Register new user with email and password.
@@ -80,6 +87,25 @@ async def register(
             username=user.username,
             provider=user.provider.value
         )
+        
+        # 🎉 NEW: Generate welcome notification for new user
+        try:
+            welcome_notification = await notification_service.execute(
+                user_id=user.id,
+                trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
+                trigger_data={
+                    "topic": "Welcome to Capital Craft!",
+                    "topic_description": "Get started with your investment journey",
+                    "relevance_score": 1.0,
+                    "content_slug": "investment_fundamentals",
+                    "event_type": "user_registration",
+                    "is_first_time_user": True
+                }
+            )
+            print(f"🔔 Welcome notification generated for new user: {user.id}")
+        except Exception as e:
+            print(f"⚠️  Failed to generate welcome notification: {e}")
+            # Don't fail registration if notification fails
         
         return TokenResponse(
             access_token=token_pair.access_token,
@@ -106,7 +132,8 @@ async def register(
 @auth_router.post("/login", response_model=TokenResponse)
 async def login(
     request: LoginRequest,
-    auth_use_case: AuthenticateUserUseCase = Depends(get_authenticate_user_use_case)
+    auth_use_case: AuthenticateUserUseCase = Depends(get_authenticate_user_use_case),
+    notification_service: GenerateNotificationUseCase = Depends(get_generate_notification_use_case)
 ):
     """
     Login user with email and password.
@@ -135,6 +162,28 @@ async def login(
             username=user.username,
             provider=user.provider.value
         )
+        
+        # 🚀 NEW: Generate login notification for returning user (lightweight)
+        try:
+            # Only generate login notification if it's been a while (avoid spam)
+            from datetime import datetime
+            login_notification = await notification_service.execute(
+                user_id=user.id,
+                trigger_type=NotificationTriggerType.PORTFOLIO_CHANGE,
+                trigger_data={
+                    "topic": "Welcome back!",
+                    "topic_description": "Check your portfolio performance",
+                    "relevance_score": 0.7,
+                    "content_slug": "portfolio_review",
+                    "event_type": "user_login",
+                    "login_timestamp": datetime.now().isoformat()
+                }
+            )
+            if login_notification:
+                print(f"🔔 Login notification generated for user: {user.id}")
+        except Exception as e:
+            print(f"⚠️  Failed to generate login notification: {e}")
+            # Don't fail login if notification fails
         
         return TokenResponse(
             access_token=token_pair.access_token,
@@ -204,7 +253,8 @@ async def google_login(request: Request):
 async def google_callback(
     code: str,
     state: Optional[str] = None,
-    create_user_use_case: CreateUserUseCase = Depends(get_create_user_use_case)
+    create_user_use_case: CreateUserUseCase = Depends(get_create_user_use_case),
+    notification_service: GenerateNotificationUseCase = Depends(get_generate_notification_use_case)
 ):
     """
     Handle Google OAuth callback.
@@ -242,6 +292,42 @@ async def google_callback(
             username=user.username,
             provider=user.provider.value
         )
+        
+        # 🎯 NEW: Generate OAuth-specific notification
+        try:
+            if was_created:
+                # New Google user - welcome notification
+                oauth_notification = await notification_service.execute(
+                    user_id=user.id,
+                    trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
+                    trigger_data={
+                        "topic": "Welcome to Capital Craft!",
+                        "topic_description": "You've successfully signed up with Google",
+                        "relevance_score": 1.0,
+                        "content_slug": "investment_fundamentals",
+                        "event_type": "oauth_registration",
+                        "provider": "google",
+                        "is_first_time_user": True
+                    }
+                )
+                print(f"🔔 OAuth welcome notification generated for new user: {user.id}")
+            else:
+                # Returning Google user
+                oauth_notification = await notification_service.execute(
+                    user_id=user.id,
+                    trigger_type=NotificationTriggerType.PORTFOLIO_CHANGE,
+                    trigger_data={
+                        "topic": "Welcome back!",
+                        "topic_description": "Signed in with Google successfully",
+                        "relevance_score": 0.6,
+                        "content_slug": "portfolio_review",
+                        "event_type": "oauth_login",
+                        "provider": "google"
+                    }
+                )
+                print(f"🔔 OAuth login notification generated for user: {user.id}")
+        except Exception as e:
+            print(f"⚠️  Failed to generate OAuth notification: {e}")
         
         # In production, redirect to frontend with tokens
         # For now, return JSON response

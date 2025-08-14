@@ -75,10 +75,12 @@ class MarkNotificationAsReadUseCase:
                 f"Cannot modify dismissed notification {notification_id}"
             )
         
-        # Mark as read using domain method
+        # Mark as read using repository method (direct UPDATE)
+        success = await self.notification_repository.mark_as_read(notification_id)
+        
+        if not success:
+            raise NotificationNotFoundError(f"Failed to mark notification {notification_id} as read")
+        
+        # Update the entity state and return
         notification.mark_as_read()
-        
-        # Persist changes
-        await self.notification_repository.save_notification(notification)
-        
         return notification

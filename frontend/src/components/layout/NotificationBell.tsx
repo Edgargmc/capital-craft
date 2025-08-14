@@ -12,15 +12,18 @@ interface NotificationBellProps {
 export function NotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
     notifications, 
-    isLoading
+    isLoading,
+    getUnreadCount  // 🔧 Changed to function
   } = useNotificationStore();
 
   // No fetch logic - this is handled by the parent Header component
 
-  // Calculate unread count safely
-  const displayCount = notifications 
-    ? notifications.filter(n => !n.isRead).length 
-    : 0;
+  // 🔔 FIXED: Use backend count directly from store (no manual calculation)
+  const unreadCount = getUnreadCount();  // 🔧 Call function
+  const displayCount = unreadCount || 0;
+  
+  // 🔍 DEBUG: Log campanita state
+  console.log('🔔 NotificationBell debug:', { unreadCount, displayCount, notificationsLength: notifications?.length });
 
   return (
     <button
@@ -62,12 +65,13 @@ export function NotificationBell({ userId, onClick }: NotificationBellProps) {
 // Mobile variant with different sizing
 export function MobileNotificationBell({ userId, onClick }: NotificationBellProps) {
   const { 
-    notifications
+    notifications,
+    getUnreadCount  // 🔧 Changed to function
   } = useNotificationStore();
 
-  const displayCount = notifications 
-    ? notifications.filter(n => !n.isRead).length 
-    : 0;
+  // 🔔 FIXED: Use backend count directly from store (no manual calculation)
+  const unreadCount = getUnreadCount();  // 🔧 Call function
+  const displayCount = unreadCount || 0;
 
   return (
     <button

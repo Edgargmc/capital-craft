@@ -42,6 +42,7 @@ describe('NotificationAPI Core Functionality', () => {
       }
     ],
     total_count: 1,
+    unread_count: 1,
     user_id: 'test-user'
   };
 
@@ -346,6 +347,7 @@ describe('NotificationAPI Business Logic Integration', () => {
         }
       ],
       total_count: 2,
+      unread_count: 1,
       user_id: 'test-user'
     };
 
@@ -388,6 +390,7 @@ describe('NotificationAPI Business Logic Integration', () => {
         }
       ],
       total_count: 1,
+      unread_count: 0,
       user_id: 'test-user'
     };
 
