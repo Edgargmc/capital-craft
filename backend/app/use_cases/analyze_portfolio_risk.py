@@ -6,6 +6,7 @@ Clean fixed version - replace entire file content
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
+from datetime import datetime
 from ..core.entities.portfolio import Portfolio
 from ..core.entities.stock import Stock
 from ..core.entities.notification import NotificationTriggerType
@@ -21,6 +22,12 @@ class PortfolioRiskAnalysis:
     risk_factors: list[str]
     recommendation: str
     notifications_generated: int = 0  # NEW: Track notifications generated
+    analysis_date: datetime = None  # NEW: Analysis timestamp
+    
+    def __post_init__(self):
+        """Set analysis_date to current time if not provided"""
+        if self.analysis_date is None:
+            self.analysis_date = datetime.utcnow()
 
 
 class AnalyzePortfolioRisk:
@@ -31,9 +38,9 @@ class AnalyzePortfolioRisk:
     """
     
     def __init__(self, 
-                 stock_provider, 
+                 get_stock_data_use_case, 
                  notification_service: Optional[GenerateNotificationUseCase] = None):
-        self.stock_provider = stock_provider
+        self.get_stock_data_use_case = get_stock_data_use_case
         self.notification_service = notification_service  # NEW: Optional dependency
     
     async def execute(self, portfolio: Portfolio, user_id: str) -> PortfolioRiskAnalysis:
@@ -150,8 +157,8 @@ class AnalyzePortfolioRisk:
         
         for holding in portfolio.get_holdings():  
             try:
-                # Get current stock data
-                stock_data = self.stock_provider.get_stock_data(holding.symbol)
+                # Get current stock data using use case
+                stock_data = self.get_stock_data_use_case.execute(holding.symbol)
                 
                 # Check for significant individual stock volatility
                 if stock_data.beta and float(stock_data.beta) > 1.5:
@@ -205,8 +212,8 @@ class AnalyzePortfolioRisk:
         
         for holding in portfolio.get_holdings():
             try:
-                # Get stock data with beta information
-                stock_data = self.stock_provider.get_stock_data(holding.symbol)
+                # Get stock data with beta information using use case
+                stock_data = self.get_stock_data_use_case.execute(holding.symbol)
                 current_value = holding.shares * stock_data.current_price
                 total_value += current_value
                 

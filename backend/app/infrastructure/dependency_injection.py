@@ -245,9 +245,15 @@ def get_sell_stock_use_case(
     return SellStock(get_stock_data, portfolio_repository, notification_repo)
 
 
-def get_analyze_portfolio_risk_use_case(
-    portfolio_repository: PortfolioRepository = Depends(get_portfolio_repository)
-) -> AnalyzePortfolioRisk:
+def get_analyze_portfolio_risk_use_case() -> AnalyzePortfolioRisk:
     """FastAPI dependency for analyze portfolio risk use case"""
+    # Create GetStockDataUseCase properly wrapped
     stock_provider = get_stock_data_provider()
-    return AnalyzePortfolioRisk(portfolio_repository, stock_provider)
+    from ..use_cases.get_stock_data import GetStockDataUseCase
+    get_stock_data = GetStockDataUseCase(stock_provider)
+    
+    # Get notification service
+    notification_service = _container.get_generate_notification_use_case()
+    
+    # ✅ FIXED: Correct parameter order and proper use case wrapping
+    return AnalyzePortfolioRisk(get_stock_data, notification_service)

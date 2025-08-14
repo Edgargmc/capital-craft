@@ -53,9 +53,11 @@ stock_data_provider = ProviderFactory.create_provider()
 # Initialize notification system using dependency injection
 notification_service = get_generate_notification_use_case()
 
-# Enhanced portfolio risk analysis with notifications
+# Enhanced portfolio risk analysis with notifications  
+# Use GetStockDataUseCase wrapper for consistency
+get_stock_data_for_risk = GetStockDataUseCase(stock_data_provider)
 analyze_portfolio_risk_use_case = AnalyzePortfolioRisk(
-    stock_data_provider, 
+    get_stock_data_for_risk, 
     notification_service
 )# Initialize content repository and use cases
 content_repository = ContentRepositoryFactory.create_repository("markdown")
@@ -193,6 +195,7 @@ from app.infrastructure.dependency_injection import (
 )
 from app.infrastructure.auth.dependencies import get_current_user_id
 
+# ✅ FIXED: Specific routes MUST come before generic routes
 @app.get("/portfolio/me")
 async def get_my_portfolio(
     current_user_id: str = Depends(get_current_user_id),
@@ -211,6 +214,55 @@ async def get_my_portfolio(
         return summary
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/portfolio/me/risk-analysis")
+async def get_my_portfolio_risk_analysis(
+    current_user_id: str = Depends(get_current_user_id),
+    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case),
+    analyze_portfolio_risk_use_case: AnalyzePortfolioRisk = Depends(get_analyze_portfolio_risk_use_case)
+):
+    """Portfolio risk analysis for authenticated user - Clean Architecture"""
+    try:
+        # Get user's portfolio
+        portfolio = await get_or_create_portfolio.execute(current_user_id)
+        
+        # Analyze portfolio risk
+        risk_analysis = await analyze_portfolio_risk_use_case.execute(portfolio, current_user_id)
+        
+        # Educational trigger for learning opportunities
+        if risk_analysis.learning_trigger:
+            print(f"🎓 Learning opportunity triggered for user {current_user_id}: {risk_analysis.learning_trigger}")
+        
+        return {
+            "user_id": portfolio.user_id,
+            "portfolio_summary": {
+                "cash_balance": float(portfolio.cash_balance),
+                "total_holdings": len(portfolio.get_holdings()),
+                "holdings": {
+                    holding.symbol: {
+                        "symbol": holding.symbol,
+                        "shares": holding.shares,
+                        "average_price": float(holding.average_price)
+                    }
+                    for holding in portfolio.get_holdings()
+                }
+            },
+            "risk_analysis": {
+                "risk_level": risk_analysis.risk_level,
+                "volatility_score": risk_analysis.volatility_score,
+                "learning_trigger": risk_analysis.learning_trigger,
+                "risk_factors": risk_analysis.risk_factors,
+                "recommendation": risk_analysis.recommendation,
+                "notifications_generated": risk_analysis.notifications_generated,
+            },
+            "analysis_timestamp": risk_analysis.analysis_date.isoformat(),
+            "educational_insights": risk_analysis.learning_trigger is not None
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
 @app.get("/portfolio/{user_id}")
 async def get_portfolio(
@@ -869,56 +921,6 @@ def health_check():
             "service": "capital-craft-backend", 
             "error": f"System issue: {str(e)}"
         }
-
-# Authenticated risk analysis endpoint - Clean Architecture + JWT
-@app.get("/portfolio/me/risk-analysis")
-async def get_my_portfolio_risk_analysis(
-    current_user_id: str = Depends(get_current_user_id),
-    get_or_create_portfolio: GetOrCreatePortfolioUseCase = Depends(get_get_or_create_portfolio_use_case),
-    analyze_portfolio_risk_use_case: AnalyzePortfolioRisk = Depends(get_analyze_portfolio_risk_use_case)
-):
-    """Portfolio risk analysis for authenticated user - Clean Architecture"""
-    try:
-        # Get user's portfolio
-        portfolio = await get_or_create_portfolio.execute(current_user_id)
-        
-        # Analyze portfolio risk
-        risk_analysis = await analyze_portfolio_risk_use_case.execute(portfolio, current_user_id)
-        
-        # Educational trigger for learning opportunities
-        if risk_analysis.learning_trigger:
-            print(f"🎓 Learning opportunity triggered for user {current_user_id}: {risk_analysis.learning_trigger}")
-        
-        return {
-            "user_id": portfolio.user_id,
-            "portfolio_summary": {
-                "cash_balance": float(portfolio.cash_balance),
-                "total_holdings": len(portfolio.get_holdings()),
-                "holdings": {
-                    holding.symbol: {
-                        "symbol": holding.symbol,
-                        "shares": holding.shares,
-                        "average_price": float(holding.average_price)
-                    }
-                    for holding in portfolio.get_holdings()
-                }
-            },
-            "risk_analysis": {
-                "risk_level": risk_analysis.risk_level,
-                "volatility_score": risk_analysis.volatility_score,
-                "learning_trigger": risk_analysis.learning_trigger,
-                "risk_factors": risk_analysis.risk_factors,
-                "recommendation": risk_analysis.recommendation,
-                "notifications_generated": risk_analysis.notifications_generated,
-            },
-            "analysis_timestamp": risk_analysis.analysis_date.isoformat(),
-            "educational_insights": risk_analysis.learning_trigger is not None
-        }
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analyzing portfolio risk: {str(e)}")
 
 # Authenticated buy endpoint - Clean Architecture + JWT
 @app.post("/auth/portfolio/buy")

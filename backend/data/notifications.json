@@ -663,6 +663,47 @@
         "dividend_yield": 0.0264
       },
       "status": "pending"
+    },
+    {
+      "id": "000ce2ab-f027-4cb3-8004-fd5ec525b4b7",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\u2696\ufe0f Portfolio Risk: HIGH",
+      "message": "Your portfolio risk changed to HIGH. Discover what this means for your strategy.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-14T00:11:05.190690",
+      "sentAt": null,
+      "deepLink": "/learning/content/risk_management?level=HIGH",
+      "triggerType": "risk_change",
+      "triggerData": {
+        "new_risk_level": "HIGH",
+        "volatility_score": 1.3465538721249208,
+        "risk_level_changed": true
+      },
+      "status": "pending"
+    },
+    {
+      "id": "2ff296f9-f913-43e0-a2de-befea1581c1b",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\ud83d\udca1 Perfect time to learn about Market Volatility",
+      "message": "Based on your portfolio, now is a great time to understand understanding how market ups and downs affect your investments.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-14T00:11:05.192242",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Market Volatility",
+        "topic_description": "understanding how market ups and downs affect your investments",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics"
+      },
+      "status": "pending"
     }
   ]
 }
