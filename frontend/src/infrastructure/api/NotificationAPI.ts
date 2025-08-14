@@ -67,7 +67,6 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
       
       // Validate API response structure
       if (!this.isValidNotificationListResponse(jsonData)) {
-        console.error('❌ Invalid API response format:', jsonData);
         return {
           success: false,
           error: 'Invalid API response format',
@@ -77,7 +76,6 @@ export class NotificationAPI implements INotificationRepository, INotificationUp
 
       // Transform using entity layer
       const result = NotificationListEntity.fromApiResponse(jsonData);
-      console.log('✅ Transformed result:', result);
       return result;
 
     } catch (error) {

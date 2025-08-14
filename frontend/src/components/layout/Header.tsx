@@ -1,19 +1,14 @@
 // src/components/layout/Header.tsx
 'use client';
 
-import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame, Bell } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, PieChart, Shield, Scale, Flame } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { NotificationDropdown } from './NotificationDropdown';
 import { NotificationBell } from './NotificationBell';
+import { Holding } from '@/lib/api';
 
 // Portfolio Risk Calculator (from previous component)
-interface Holding {
-  symbol: string;
-  shares: number;
-  current_value: number;
-  beta?: number;
-}
 
 interface PortfolioRisk {
   level: 'conservative' | 'balanced' | 'aggressive' | 'not-rated';
@@ -45,7 +40,7 @@ class PortfolioRiskCalculator {
     let weightedBetaSum = 0;
 
     holdingsArray.forEach(holding => {
-      const value = holding.current_value;
+      const value = holding.current_value || 0;
       totalValue += value;
       const beta = holding.beta ?? 1.0;
       weightedBetaSum += beta * value;
@@ -89,7 +84,7 @@ class PortfolioRiskCalculator {
 
 // Portfolio Risk Badge Component
 interface PortfolioRiskBadgeProps {
-  holdings: Record<string, { symbol: string; shares: number; current_value: number; beta?: number }>;
+  holdings: Record<string, Holding>;
 }
 
 const PortfolioRiskBadge: React.FC<PortfolioRiskBadgeProps> = ({ holdings }) => {
@@ -147,7 +142,7 @@ interface HeaderProps {
     totalUnrealizedPnl: number;
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
-    holdings: Record<string, { symbol: string; shares: number; current_value: number; beta?: number }>;
+    holdings: Record<string, Holding>;
   } | null;
   loading: boolean;
   onBuyClick: () => void;

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { PieChart } from 'lucide-react';
-import { CapitalCraftAPI, PortfolioSummary } from '@/lib/api';
+import { CapitalCraftAPI, PortfolioSummary, Holding } from '@/lib/api';
 import { AppLayout } from '@/components/layout/AppLayout';
 import  HoldingCard  from './HoldingCard';
 import { BuyStockModal } from '@/components/modals/BuyStockModal';
@@ -15,9 +15,7 @@ import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { useAuth } from '@/contexts/AuthContext';
 
 
-
 interface PortfolioDashboardProps {
-  // ✅ NEW: userId is now optional, defaults to "demo" for non-authenticated users
   userId?: string;
 }
 
@@ -27,14 +25,9 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
   const [error, setError] = useState<string | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showLearningModal, setShowLearningModal] = useState(false);
-
-  // ✅ NEW: Auth context
-  const auth = useAuth();
-
-  // Notification store
-  const { fetchNotifications } = useNotificationStore();
   
-  // State para modals
+  const auth = useAuth();
+  const { fetchNotifications } = useNotificationStore();
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showSellModal, setShowSellModal] = useState(false);
 
@@ -42,38 +35,20 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
     try {
       setLoading(true);
       
-      // 🔍 DEBUG: Check auth state
-      console.log('🔍 PortfolioDashboard Auth State:', {
-        isAuthenticated: auth.isAuthenticated,
-        hasToken: !!auth.token,
-        user: auth.user,
-        isLoading: auth.isLoading
-      });
-      
-      // ⏳ WAIT: Don't fetch until AuthContext finishes loading
       if (auth.isLoading) {
-        console.log('⏳ AuthContext still loading, waiting...');
         setLoading(false);
         return;
       }
       
-      // ✅ NEW: Use authenticated endpoints when user is logged in
       if (auth.isAuthenticated && auth.token) {
-        console.log('✅ Using authenticated endpoints');
         const [summaryData, riskData] = await Promise.all([
           CapitalCraftAPI.getMyPortfolio(auth.token),
           CapitalCraftAPI.getMyRiskAnalysis(auth.token)
         ]);
         
-        // 🔍 DEBUG: Check data structure from authenticated endpoints
-        console.log('🔍 Authenticated Portfolio Data:', summaryData);
-        console.log('🔍 Authenticated Risk Data:', riskData);
-        
         setSummary(summaryData);
         setRiskAnalysis(riskData);
       } else {
-        console.log('⚠️ User not authenticated - skipping portfolio fetch');
-        // ✅ SKIP: Don't fetch portfolio data when not authenticated
         setSummary(null);
         setRiskAnalysis(null);
       }
@@ -86,22 +61,14 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
     }
   };
 
-  // Function to refresh both portfolio and notifications after trade
   const handleTradeSuccess = async () => {
-    console.log('🔄 Trade successful - refreshing portfolio and notifications');
-    
-    // Refresh portfolio data
     await fetchData();
-    
-    // Refresh notifications immediately to show new educational content
     await fetchNotifications(userId);
-    
-    console.log('✅ Portfolio and notifications refreshed');
   };
   
   useEffect(() => {
     fetchData();
-  }, [userId, auth.isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, auth.isLoading]);
 
   const headerData = summary ? {
     cashBalance: summary.cash_balance,
@@ -145,7 +112,6 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
         onSellClick={() => setShowSellModal(true)}
       >
         <div className="p-6">
-          {/* Welcome Section */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
             <p className="text-gray-600">Here&apos;s how your portfolio is performing today.</p>
@@ -161,7 +127,6 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
                 />
               </div>
           )}
-          {/* Holdings Section */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -196,16 +161,15 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
                   symbol={holding.symbol}
                   shares={holding.shares}
                   averagePrice={holding.average_price}
-                  currentPrice={holding.current_price}
-                  currentValue={holding.current_value}
-                  unrealizedPnl={holding.unrealized_pnl}
-                  unrealizedPnlPercent={holding.unrealized_pnl_percent}
+                  currentPrice={holding.current_price || 0}
+                  currentValue={holding.current_value || 0}
+                  unrealizedPnl={holding.unrealized_pnl || 0}
+                  unrealizedPnlPercent={holding.unrealized_pnl_percent || 0}
                 />
               ))}
             </div>
           ) : null}
 
-          {/* Refresh Button */}
           {!loading && (
             <div className="text-center mt-8">
               <button 
@@ -219,7 +183,6 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
         </div>
       </AppLayout>
 
-      {/* Modals */}
       <BuyStockModal
         isOpen={showBuyModal}
         onClose={() => setShowBuyModal(false)}
@@ -233,37 +196,7 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
         onClose={() => setShowSellModal(false)}
         onSuccess={handleTradeSuccess}
         userId={userId}
-        holdings={(() => {
-          console.log('🔍 DEBUG: Summary holdings before passing to modal', {
-            summary,
-            holdings: summary?.holdings,
-            holdingsType: typeof summary?.holdings,
-            holdingsKeys: summary?.holdings ? Object.keys(summary.holdings) : 'no holdings',
-            isLoading: loading
-          });
-          
-          // ✅ FIX: Return empty object only if not loading and no data
-          if (loading) {
-            console.log('🔄 Still loading, returning empty holdings');
-            return {};
-          }
-          
-          const rawHoldings = summary?.holdings || {};
-          
-          // ✅ FIX: Convert Array to Object if needed
-          if (Array.isArray(rawHoldings)) {
-            console.log('🔧 Converting holdings array to object');
-            const holdingsObject: Record<string, any> = {};
-            rawHoldings.forEach((holding: any) => {
-              if (holding.symbol) {
-                holdingsObject[holding.symbol] = holding;
-              }
-            });
-            return holdingsObject;
-          }
-          
-          return rawHoldings;
-        })()}
+        holdings={summary?.holdings || {}}
       />
 
       <LearningContentModal 

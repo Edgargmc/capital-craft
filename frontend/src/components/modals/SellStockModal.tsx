@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X, TrendingDown } from 'lucide-react';
-import { CapitalCraftAPI } from '@/lib/api';
+import { CapitalCraftAPI, Holding } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SellStockModalProps {
@@ -10,14 +10,7 @@ interface SellStockModalProps {
   onClose: () => void;
   onSuccess: () => void;
   userId: string;
-  holdings: Record<string, {
-    symbol: string;
-    shares: number;
-    average_price: number;
-    current_price: number;
-    current_value: number;
-    unrealized_pnl: number;
-  }>;
+  holdings: Record<string, Holding>;
 }
 
 export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }: SellStockModalProps) {
@@ -26,53 +19,28 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ NEW: Auth context integration
   const auth = useAuth();
-
-  // 🔍 DEBUG: Log holdings structure
-  console.log('🔍 DEBUG: Holdings structure', { holdings, selectedStock });
-
   const holding = selectedStock ? holdings[selectedStock] : null;
-  
-  // 🔍 DEBUG: Log holding resolution
-  console.log('🔍 DEBUG: Holding resolution', { selectedStock, holding, holdingExists: !!holding });
-
-  const sellValue = holding && shares ? holding.current_price * parseInt(shares || '0') : 0;
+  const sellValue = holding && shares ? (holding.current_price || 0) * parseInt(shares || '0') : 0;
   const hasEnoughShares = holding && shares ? parseInt(shares) <= holding.shares : false;
   const isValidSale = holding && shares && parseInt(shares) > 0 && hasEnoughShares;
 
   const handleSell = async () => {
-    console.log('🔍 DEBUG: handleSell called', {
-      isValidSale,
-      selectedStock,
-      shares,
-      hasEnoughShares,
-      holding,
-      authState: {
-        isAuthenticated: auth.isAuthenticated,
-        hasToken: !!auth.token
-      }
-    });
     
     if (!isValidSale || !selectedStock) {
-      console.log('❌ DEBUG: Validation failed', { isValidSale, selectedStock });
       return;
     }
 
     setLoading(true);
     try {
-      // ✅ NEW: Use authenticated endpoint when user is logged in
       if (auth.isAuthenticated && auth.token) {
-        console.log('✅ Using authenticated sell stock endpoint');
         await CapitalCraftAPI.sellMyStock(auth.token, selectedStock, parseInt(shares));
       } else {
-        console.log('⚠️ User not authenticated - cannot sell stock');
         throw new Error('Please login to sell stocks');
       }
       
       onSuccess();
       onClose();
-      // Reset form
       setSelectedStock('');
       setShares('');
     } catch (err) {
@@ -96,7 +64,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
   return (
     <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Sell Stock</h2>
           <button
@@ -106,8 +73,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
             <X className="h-6 w-6" />
           </button>
         </div>
-
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {holdingsList.length === 0 ? (
             <div className="text-center py-8">
@@ -117,7 +82,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
             </div>
           ) : (
             <>
-              {/* Stock Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Stock to Sell
@@ -126,7 +90,7 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                   value={selectedStock}
                   onChange={(e) => {
                     setSelectedStock(e.target.value);
-                    setShares(''); // Reset shares when stock changes
+                    setShares('');
                   }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 >
@@ -138,8 +102,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                   ))}
                 </select>
               </div>
-
-              {/* Stock Info */}
               {holding && (
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -150,30 +112,28 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-500">Owned Shares</p>
-                      <p className="font-medium">{holding.shares}</p>
+                      <p className="text-gray-600">Owned Shares</p>
+                      <p className="text-black font-medium">{holding.shares}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Avg Price</p>
-                      <p className="font-medium">${holding.average_price?.toFixed(2) || '0.00'}</p>
+                      <p className="text-black font-medium">${holding.average_price?.toFixed(2) || '0.00'}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">Total Value</p>
-                      <p className="font-medium">${holding.current_value?.toFixed(2) || '0.00'}</p>
+                      <p className="text-black font-medium">${holding.current_value?.toFixed(2) || '0.00'}</p>
                     </div>
                     <div>
                       <p className="text-gray-500">P&L</p>
-                      <p className={`font-medium ${
-                        holding.unrealized_pnl >= 0 ? 'text-green-600' : 'text-red-600'
+                      <p className={`text-black font-medium ${
+                        (holding.unrealized_pnl || 0) >= 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {holding.unrealized_pnl >= 0 ? '+' : ''}${holding.unrealized_pnl.toFixed(2)}
+                        {(holding.unrealized_pnl || 0) >= 0 ? '+' : ''}${(holding.unrealized_pnl || 0).toFixed(2)}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* Shares Input */}
               {holding && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -207,7 +167,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                 </div>
               )}
 
-              {/* Sale Summary */}
               {holding && shares && (
                 <div className="bg-red-50 rounded-lg p-4">
                   <h4 className="font-medium text-gray-900 mb-3">Sale Summary</h4>
@@ -240,14 +199,12 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                 </div>
               )}
 
-              {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
 
-              {/* Insufficient Shares Warning */}
               {holding && shares && !hasEnoughShares && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-sm text-red-600">
@@ -258,8 +215,6 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
             </>
           )}
         </div>
-
-        {/* Footer */}
         {holdingsList.length > 0 && (
           <div className="flex-shrink-0 flex space-x-3 p-6 border-t border-gray-200">
             <button

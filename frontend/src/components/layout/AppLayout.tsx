@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { Holding } from '@/lib/api';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,12 +13,7 @@ interface AppLayoutProps {
     totalUnrealizedPnl: number;
     totalUnrealizedPnlPercent: number;
     holdingsCount: number;
-    holdings: Record<string, {
-      symbol: string;
-      shares: number;
-      current_value: number;
-      beta?: number;
-    }>;
+    holdings: Record<string, Holding>;
   } | null;
   headerLoading?: boolean;
   onBuyClick: () => void;
@@ -37,12 +33,9 @@ export function AppLayout({
 
   return (
     <div className="h-screen flex bg-gray-50">
-      {/* Sidebar */}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with mobile padding adjustment */}
         <div className="pt-12 md:pt-0">
           <Header 
             summary={headerData || null} 

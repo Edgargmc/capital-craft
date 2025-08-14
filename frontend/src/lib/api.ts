@@ -48,8 +48,15 @@ export interface Holding {
   symbol: string;
   shares: number;
   average_price: number;
+  current_price?: number;  // Added from backend portfolio summary
+  invested_value?: number; // Added from backend portfolio summary  
+  current_value?: number;  // Added from backend portfolio summary
+  unrealized_pnl?: number; // Added from backend portfolio summary
+  unrealized_pnl_percent?: number; // Added from backend portfolio summary
+  beta?: number; // For risk calculation
   created_at?: string;
   updated_at?: string;
+  error?: string; // For when price data fails
 }
 
 export interface Portfolio {
@@ -71,7 +78,7 @@ export interface PortfolioSummary {
   total_unrealized_pnl: number;
   total_unrealized_pnl_percent: number;
   holdings_count: number;
-  holdings: Holding[];  // Changed from Record to array
+  holdings: Record<string, Holding>;  // Backend returns object by symbol, not array
   created_at?: string;
   updated_at?: string;
 }
@@ -99,7 +106,6 @@ export interface RiskAnalysis {
   recommendations: string[];
 }
 
-// Authentication interfaces
 export interface LoginRequest {
   email: string;
   password: string;
@@ -133,7 +139,7 @@ export interface RefreshTokenRequest {
 }
 
 export class CapitalCraftAPI {
-  // Authentication methods
+
   static async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
@@ -215,57 +221,6 @@ export class CapitalCraftAPI {
     return `${API_BASE}/auth/google`;
   }
 
-  // Portfolio methods - Updated for new PostgreSQL structure
-  static async getPortfolio(userId: string): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE}/portfolio/${userId}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio');
-    }
-    
-    // Return the new Portfolio structure directly
-    return response.json();
-  }
-
-  static async getPortfolioSummary(userId: string): Promise<PortfolioSummary> {
-    const response = await fetch(`${API_BASE}/portfolio/${userId}/summary`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio summary');
-    }
-    
-    // Return the new PortfolioSummary structure directly
-    return response.json();
-  }
-
-  static async buyStock(userId: string, symbol: string, shares: number): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE}/portfolio/${userId}/buy`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ symbol, shares }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to buy stock');
-    }
-    return response.json();
-  }
-
-  static async sellStock(userId: string, symbol: string, shares: number): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE}/portfolio/${userId}/sell`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ symbol, shares }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to sell stock');
-    }
-    return response.json();
-  }
-
   static async getStock(symbol: string): Promise<Stock> {
     const response = await fetch(`${API_BASE}/stock/${symbol}`);
     if (!response.ok) {
@@ -301,7 +256,6 @@ export class CapitalCraftAPI {
     return result.results || [];
   }
 
-  // NEW: Authenticated Portfolio Methods
   static async getMyPortfolio(token: string): Promise<PortfolioSummary> {
     const response = await fetch(`${API_BASE}/portfolio/me`, {
       headers: {
@@ -316,28 +270,7 @@ export class CapitalCraftAPI {
     
     const portfolioData = await response.json();
     
-    // Transform Portfolio entity to PortfolioSummary format
-    const holdingsArray = Object.values(portfolioData.holdings || {});
-    const totalPortfolioValue = portfolioData.cash_balance + holdingsArray.reduce((sum: number, holding: any) => {
-      return sum + (holding.current_value || 0);
-    }, 0);
-    
-    const totalUnrealizedPnl = holdingsArray.reduce((sum: number, holding: any) => {
-      return sum + (holding.unrealized_pnl || 0);
-    }, 0);
-    
-    const totalUnrealizedPnlPercent = totalPortfolioValue > portfolioData.cash_balance 
-      ? (totalUnrealizedPnl / (totalPortfolioValue - portfolioData.cash_balance)) * 100 
-      : 0;
-    
-    return {
-      cash_balance: portfolioData.cash_balance,
-      total_portfolio_value: totalPortfolioValue,
-      total_unrealized_pnl: totalUnrealizedPnl,
-      total_unrealized_pnl_percent: totalUnrealizedPnlPercent,
-      holdings_count: portfolioData.total_holdings || 0,
-      holdings: holdingsArray
-    };
+    return portfolioData;
   }
 
   static async getMyRiskAnalysis(token: string): Promise<RiskAnalysis> {
@@ -355,7 +288,6 @@ export class CapitalCraftAPI {
     return response.json();
   }
 
-  // ✅ NEW: Authenticated Buy Stock Method
   static async buyMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
     const response = await fetch(`${API_BASE}/auth/portfolio/buy`, {
       method: 'POST',
@@ -373,7 +305,6 @@ export class CapitalCraftAPI {
     return response.json();
   }
 
-  // ✅ NEW: Authenticated Sell Stock Method
   static async sellMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
     const response = await fetch(`${API_BASE}/auth/portfolio/sell`, {
       method: 'POST',

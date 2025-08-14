@@ -41,13 +41,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   const handleTabChange = (tabId: string) => {
     onTabChange(tabId);
-    // Close mobile menu after selection
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
   };
 
-  // Mobile Hamburger Button (fixed position)
   const MobileMenuButton = () => (
     <button
       onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -59,7 +57,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     </button>
   );
 
-  // Mobile Overlay
   const MobileOverlay = () => (
     mobileMenuOpen ? (
       <div 
@@ -71,12 +68,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   );
 
 
-  // Sidebar Content Component
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className={`bg-gray-900 text-white flex flex-col h-full ${
       isMobile ? 'w-80' : collapsed ? 'w-16' : 'w-64'
     } transition-all duration-300`}>
-      {/* Header */}
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center justify-between">
           {(!collapsed || isMobile) && (
@@ -96,7 +91,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         </div>
       </div>
 
-      {/* Main Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {navigation.map((item) => {
           const Icon = item.icon;
@@ -121,7 +115,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         })}
       </nav>
 
-      {/* Secondary Navigation */}
       <div className="p-4 border-t border-gray-700 space-y-2">
         {secondaryNavigation.map((item) => {
           const Icon = item.icon;
@@ -150,7 +143,6 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         })}
       </div>
 
-      {/* Mobile Footer */}
       {isMobile && (
         <div className="p-4 border-t border-gray-700">
           <p className="text-xs text-gray-400 text-center">
@@ -163,18 +155,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Components */}
       <MobileMenuButton />
       <MobileOverlay />
       
-      {/* Mobile Sidebar Drawer */}
       <div className={`fixed top-0 left-0 h-full z-40 transform transition-transform duration-300 ease-in-out md:hidden ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <SidebarContent isMobile />
       </div>
 
-      {/* Desktop Sidebar */}
       <div className="hidden md:flex">
         <SidebarContent />
       </div>

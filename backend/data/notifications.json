@@ -595,6 +595,74 @@
         "transaction_context": "You just bought 1 shares of AAPL"
       },
       "status": "pending"
+    },
+    {
+      "id": "e494cb99-bf50-429a-99d8-3553f228d360",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\ud83d\udcc8 TSLA moved +10.0%",
+      "message": "Your TSLA position changed +10.0% today. Learn why this happened!",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T19:58:41.611947",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics?symbol=TSLA",
+      "triggerType": "portfolio_change",
+      "triggerData": {
+        "stock_symbol": "TSLA",
+        "change_percent": 10.0,
+        "min_abs_change_percent": 10.0,
+        "content_slug": "volatility_basics",
+        "beta": 2.31,
+        "transaction_context": "You bought volatile stock TSLA (Beta: 2.31)"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "e8ecec70-c8c0-4768-9ec4-835e113f2b10",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\ud83d\udca1 Perfect time to learn about Portfolio Diversification",
+      "message": "Based on your portfolio, now is a great time to understand building a well-balanced investment portfolio.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T19:58:41.614191",
+      "sentAt": null,
+      "deepLink": "/learning/content/diversification_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Portfolio Diversification",
+        "topic_description": "building a well-balanced investment portfolio",
+        "relevance_score": 0.8,
+        "content_slug": "diversification_basics",
+        "transaction_context": "You now own 3 different stocks"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "f3c3f1f7-67f2-4e42-8d0e-45d7aa6b4f18",
+      "userId": "e761054e-fd2b-4c28-b0e9-46a605596c25",
+      "title": "\ud83d\udca1 Perfect time to learn about Dividend Investing",
+      "message": "Based on your portfolio, now is a great time to understand how dividend stocks can provide steady income.",
+      "type": "education",
+      "priority": "medium",
+      "isRead": false,
+      "dismissed": false,
+      "createdAt": "2025-08-13T21:52:40.332667",
+      "sentAt": null,
+      "deepLink": "/learning/content/volatility_basics",
+      "triggerType": "educational_moment",
+      "triggerData": {
+        "topic": "Dividend Investing",
+        "topic_description": "how dividend stocks can provide steady income",
+        "relevance_score": 0.9,
+        "content_slug": "volatility_basics",
+        "transaction_context": "You bought dividend-paying stock MSFT",
+        "dividend_yield": 0.0264
+      },
+      "status": "pending"
     }
   ]
 }

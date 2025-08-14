@@ -6,7 +6,6 @@ export interface LoginUserUseCase {
 
 export class LoginUserUseCaseImpl implements LoginUserUseCase {
   async execute(credentials: LoginRequest): Promise<AuthResponse> {
-    // Validate input
     if (!credentials.email || !credentials.password) {
       throw new Error('Email and password are required');
     }
@@ -15,16 +14,13 @@ export class LoginUserUseCaseImpl implements LoginUserUseCase {
       throw new Error('Invalid email format');
     }
 
-    // Call infrastructure layer
     try {
       const authResponse = await CapitalCraftAPI.login(credentials);
       
-      // Store tokens in localStorage (could be moved to a separate service)
       this.storeAuthData(authResponse);
       
       return authResponse;
     } catch (error) {
-      // Re-throw with user-friendly message
       if (error instanceof Error) {
         throw new Error(error.message);
       }
@@ -44,7 +40,6 @@ export class LoginUserUseCaseImpl implements LoginUserUseCase {
   }
 }
 
-// Factory function for dependency injection
 export const createLoginUserUseCase = (): LoginUserUseCase => {
   return new LoginUserUseCaseImpl();
 };

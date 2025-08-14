@@ -13,12 +13,7 @@ interface LoginFormData {
 
 export function LoginForm() {
   const router = useRouter();
-  const auth = useAuth(); // Test AuthContext is working
-  
-  console.log(' AuthContext test:', { 
-    isAuthenticated: auth.isAuthenticated, 
-    user: auth.user?.email 
-  });
+  const auth = useAuth();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
@@ -27,7 +22,6 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Dependency injection - create use case instance
   const loginUserUseCase = createLoginUserUseCase();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,13 +40,10 @@ export function LoginForm() {
     setError(null);
 
     try {
-      // Use the login use case instead of direct API call
       const authResponse = await loginUserUseCase.execute(formData);
 
-      // Update AuthContext with user data
       auth.setAuth(authResponse.user, authResponse.access_token);
 
-      // Redirect to dashboard or home
       router.push('/');
       
     } catch (err) {
@@ -63,7 +54,6 @@ export function LoginForm() {
   };
 
   const handleGoogleLogin = () => {
-    // Use the API method for Google OAuth URL
     window.location.href = CapitalCraftAPI.getGoogleOAuthUrl();
   };
 

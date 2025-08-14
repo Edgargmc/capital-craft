@@ -248,9 +248,6 @@ export default function TestPage() {
             </div>
           </div>
         </section>
-
-
-        {/* NotificationBell Test - Capital Craft Core Feature */}
         <NotificationBellTest />
       </div>
     </div>

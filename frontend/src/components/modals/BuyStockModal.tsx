@@ -23,13 +23,11 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   const [selectedStock, setSelectedStock] = useState<{symbol: string; name: string; sector: string} | null>(null);
   const [error, setError] = useState('');
 
-  // ✅ NEW: Auth context
   const auth = useAuth();
 
-  // Search for stock when symbol changes
   useEffect(() => {
     const searchStock = async () => {
-      if (symbol.length >= 1) {
+      if (symbol.length >= 1) { 
         setSearching(true);
         try {
           const data = await CapitalCraftAPI.getStock(symbol.toUpperCase());
@@ -62,27 +60,15 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
 
     setLoading(true);
     
-    // 🔍 DEBUG: Check auth state in BuyStockModal
-    console.log('🔍 BuyStockModal Auth State:', {
-      isAuthenticated: auth.isAuthenticated,
-      hasToken: !!auth.token,
-      user: auth.user,
-      isLoading: auth.isLoading
-    });
-    
     try {
-      // ✅ NEW: Use authenticated endpoint when user is logged in
       if (auth.isAuthenticated && auth.token) {
-        console.log('✅ Using authenticated buy stock endpoint');
         await CapitalCraftAPI.buyMyStock(auth.token, symbol.toUpperCase(), parseInt(shares));
       } else {
-        console.log('⚠️ User not authenticated - cannot buy stock');
         throw new Error('Please login to buy stocks');
       }
       
       onSuccess();
       onClose();
-      // Reset form
       setSymbol('');
       setShares('');
       setStockData(null);
@@ -112,7 +98,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
     setSelectedStock(null);
     setSymbol('');
     setStockData(null);
-    setShares(''); // Clear shares when stock is cleared
+    setShares('');
     setError('');
   };
 
@@ -132,9 +118,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Stock Search */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Stock Symbol
@@ -149,7 +133,6 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
             />
           </div>
 
-          {/* Stock Info */}
           {(stockData || selectedStock) && (
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -176,7 +159,6 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
             </div>
           )}
 
-          {/* Shares Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Number of Shares
@@ -201,7 +183,6 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
             )}
           </div>
 
-          {/* Order Summary */}
           {stockData && shares && (
             <div className="bg-blue-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-3">Order Summary</h4>
@@ -230,14 +211,12 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
-          {/* Insufficient Funds Warning */}
           {stockData && shares && !canAfford && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-sm text-red-600">
@@ -247,7 +226,6 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex space-x-3 p-6 border-t border-gray-200">
           <button
             onClick={handleClose}
