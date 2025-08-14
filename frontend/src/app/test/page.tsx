@@ -261,33 +261,23 @@ const NotificationBellTest: React.FC = () => {
   const { notifications, unreadCount, fetchNotifications, isLoading, error } = useNotificationStore();
 
   const runNotificationBellTest = async () => {
-    console.log('🔔 Running NotificationBell Test...');
     setTestResult('testing');
     
     try {
       // Test 1: Fetch notifications from your backend
-      console.log('📡 Testing fetchNotifications with test user...');
       await fetchNotifications('test-user-123');
       
       // Small delay to ensure state updates
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Test 2: Validate results
-      console.log('🔍 Validating notification data...');
       const hasNotifications = Array.isArray(notifications);
       const hasValidUnreadCount = typeof unreadCount === 'number' && unreadCount >= 0;
       const noErrors = !error;
       
-      // Log detailed results
-      console.log(`📊 Test Results:`);
-      console.log(`  - Notifications array: ${hasNotifications ? '✅' : '❌'} (${notifications?.length || 0} items)`);
-      console.log(`  - Unread count: ${hasValidUnreadCount ? '✅' : '❌'} (${unreadCount})`);
-      console.log(`  - No errors: ${noErrors ? '✅' : '❌'} ${error ? `(${error})` : ''}`);
-      
       // Final validation
       if (hasNotifications && hasValidUnreadCount && noErrors) {
         setTestResult('pass');
-        console.log('✅ NotificationBell Test: PASSED');
       } else {
         setTestResult('fail');
         console.log('❌ NotificationBell Test: FAILED');
@@ -301,13 +291,11 @@ const NotificationBellTest: React.FC = () => {
 
   const handleMockBellClick = () => {
     setClickCount(prev => prev + 1);
-    console.log(`🔔 Mock NotificationBell clicked ${clickCount + 1} times`);
   };
 
   const resetTest = () => {
     setTestResult('idle');
     setClickCount(0);
-    console.log('🔄 NotificationBell Test: RESET');
   };
 
   return (
@@ -439,11 +427,6 @@ const ZustandStoreTest: React.FC = () => {
   const { notifications, isLoading, error, fetchNotifications, clearError } = useNotificationStore();
   
   const handleTest = () => {
-    console.log('Testing Zustand store...');
-    console.log('notifications:', notifications);
-    console.log('isLoading:', isLoading);
-    console.log('error:', error);
-    
     // Test action call
     fetchNotifications('test-user-123');
   };

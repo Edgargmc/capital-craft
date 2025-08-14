@@ -22,9 +22,6 @@ export function NotificationBell({ userId, onClick }: NotificationBellProps) {
   const unreadCount = getUnreadCount();  // 🔧 Call function
   const displayCount = unreadCount || 0;
   
-  // 🔍 DEBUG: Log campanita state
-  console.log('🔔 NotificationBell debug:', { unreadCount, displayCount, notificationsLength: notifications?.length });
-
   return (
     <button
       onClick={onClick}

@@ -37,8 +37,9 @@ describe('NotificationAPI Core Functionality', () => {
         deep_link: '/test',
         trigger_type: 'educational_moment',
         status: 'pending',
-        created_at: '2025-08-05T00:45:11.372824',
-        sent_at: null
+        createdAt: '2025-08-05T00:45:11.372824',
+        sent_at: null,
+        isRead: false
       }
     ],
     total_count: 1,
@@ -327,13 +328,14 @@ describe('NotificationAPI Business Logic Integration', () => {
       data: [
         {
           id: 'edu-1',
-          title: '💡 Educational Moment',
-          message: 'Learn about investing',
-          deep_link: '/learn/basics',
+          title: '📚 New Learning Module',
+          message: 'Learn about dividend investing',
+          deep_link: '/education/dividends',
           trigger_type: 'educational_moment',
           status: 'pending',
-          created_at: '2025-08-05T00:45:11.372824',
-          sent_at: null
+          createdAt: '2025-08-05T00:45:11.372824',  // 🔧 FIXED: Use camelCase
+          sent_at: null,
+          isRead: false  // 🔧 ADDED: Required isRead property
         },
         {
           id: 'alert-1',
@@ -342,8 +344,9 @@ describe('NotificationAPI Business Logic Integration', () => {
           deep_link: '/portfolio/risk',
           trigger_type: 'risk_change',
           status: 'read',
-          created_at: '2025-08-05T00:30:11.372824',
-          sent_at: '2025-08-05T00:31:00.000000'
+          createdAt: '2025-08-05T00:30:11.372824',  // 🔧 FIXED: Use camelCase
+          sent_at: '2025-08-05T00:31:00.000000',
+          isRead: true  // 🔧 ADDED: Required isRead property
         }
       ],
       total_count: 2,
@@ -385,7 +388,7 @@ describe('NotificationAPI Business Logic Integration', () => {
           deep_link: '/test?invalid=true',
           trigger_type: 'invalid_type', // Maps to educational_moment (default)
           status: 'pending',
-          created_at: '2025-01-01T00:00:00Z', // Valid date format
+          createdAt: '2025-01-01T00:00:00Z', // Valid date format
           sent_at: null
         }
       ],

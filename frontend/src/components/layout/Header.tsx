@@ -170,7 +170,6 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
     // Update authentication state in store
     if (hasValidToken !== isAuthenticated) {
       setAuthenticated(!!hasValidToken);
-      console.log('🔐 Authentication state updated:', hasValidToken ? 'authenticated' : 'not authenticated');
     }
   }, [isAuthenticated, setAuthenticated]);
 
@@ -179,10 +178,8 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
     const fetchNotificationsSmartly = async () => {
       try {
         if (isAuthenticated) {
-          console.log('🔐 Using authenticated method: fetchMyNotifications');
           await fetchMyNotifications();
         } else {
-          console.log('👤 User not authenticated, skipping notification fetch');
           // Don't fetch notifications for non-authenticated users
           // This prevents calls to /users/demo/notifications
         }
@@ -288,13 +285,11 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <NotificationBell 
               userId={userId}
               onClick={() => {
-                console.log('🔔 Mobile NotificationBell clicked, current showMobileNotifications:', showMobileNotifications);
                 setShowMobileNotifications(!showMobileNotifications);
               }}
             />
             {showMobileNotifications && (
               <>
-                {console.log('📋 Rendering NotificationDropdown (mobile)')}
                 <NotificationDropdown 
                   onClose={() => setShowMobileNotifications(false)}
                   onNavigateToNotifications={onNavigateToNotifications}
@@ -400,13 +395,11 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
             <NotificationBell 
               userId={userId}
               onClick={() => {
-                console.log('🔔 Desktop NotificationBell clicked, current showDesktopNotifications:', showDesktopNotifications);
                 setShowDesktopNotifications(!showDesktopNotifications);
               }}
             />
             {showDesktopNotifications && (
               <>
-                {console.log('📋 Rendering NotificationDropdown (desktop)')}
                 <NotificationDropdown 
                   onClose={() => setShowDesktopNotifications(false)}
                   onNavigateToNotifications={onNavigateToNotifications}

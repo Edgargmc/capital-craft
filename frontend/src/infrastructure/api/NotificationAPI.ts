@@ -87,9 +87,7 @@ export class NotificationAPI implements
       }
 
       // Parse JSON only once
-      const jsonData = await response.json();
-      console.log('📦 Raw API Response:', jsonData);
-      
+      const jsonData = await response.json();      
       // Validate API response structure
       if (!this.isValidNotificationListResponse(jsonData)) {
         return {
@@ -286,7 +284,6 @@ export class NotificationAPI implements
 
       // Parse JSON only once
       const jsonData = await response.json();
-      console.log('📦 Authenticated API Response:', jsonData);
       
       // Validate API response structure (same validation as existing method)
       if (!this.isValidNotificationListResponse(jsonData)) {

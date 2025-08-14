@@ -219,6 +219,7 @@ async def get_my_unread_notification_count(
         
         # Count only unread and non-dismissed
         unread_count = sum(1 for n in notifications if not n.is_read and not n.dismissed)
+        print(f"🔍 DEBUG: Found {unread_count} unread notifications")
         
         return {
             "success": True,
@@ -249,7 +250,7 @@ async def get_my_notifications(
         unread_notifications = [n for n in notifications if not n.is_read and not n.dismissed]
         
         # Transform to response format (same as existing endpoint)
-        return {
+        response_data = {
             "success": True,
             "data": [
                 {
@@ -271,6 +272,13 @@ async def get_my_notifications(
             "unread_count": len(unread_notifications),  # 🔔 NEW: Count for campanita
             "user_id": current_user_id  # Include authenticated user_id for verification
         }
+        
+        # 🔍 DEBUG: Log what we're sending to frontend
+        print(f"🔍 DEBUG: Sending {len(response_data['data'])} notifications to frontend")
+        for i, notif_data in enumerate(response_data['data']):
+            print(f"🔍 DEBUG: Notification {i+1} - createdAt: {notif_data['createdAt']} (type: {type(notif_data['createdAt'])})")
+        
+        return response_data
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -717,8 +725,8 @@ async def get_user_notifications(
                     "id": notification.id,
                     "title": notification.title,
                     "message": notification.message,
-                    "deep_link": notification.deep_link,
-                    "trigger_type": notification.trigger_type.value,
+                    "deepLink": notification.deep_link,
+                    "triggerType": notification.trigger_type.value,
                     "status": notification.status.value,
                     "created_at": notification.created_at.isoformat() if notification.created_at else None,
                     "sent_at": notification.sent_at.isoformat() if notification.sent_at else None,

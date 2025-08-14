@@ -49,9 +49,6 @@ interface NotificationState {
 const notificationAPI = CapitalCraftNotificationAPI.getInstance();
 const logger = new ConsoleLogger();
 
-// Debug: Log initialization
-console.log('🔧 NotificationStore: Initializing dependencies...');
-console.log('🔧 NotificationAPI instance:', notificationAPI);
 
 // Original use cases (backward compatibility)
 const fetchNotificationsUseCase = new FetchNotificationsUseCase(notificationAPI, logger);
@@ -64,8 +61,6 @@ const fetchMyNotificationsUseCase = new FetchMyNotificationsUseCase(notification
 const markMyNotificationAsReadUseCase = new MarkMyNotificationAsReadUseCase(notificationAPI, logger);
 const dismissMyNotificationUseCase = new DismissMyNotificationUseCase(notificationAPI, logger);
 const markAllMyNotificationsAsReadUseCase = new MarkAllMyNotificationsAsReadUseCase(notificationAPI);
-
-console.log('✅ NotificationStore: All use cases initialized (original + authenticated)');
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: null,
@@ -80,25 +75,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const state = get();
     const { notifications, serverUnreadCount, usingMockData } = state;
     
-    // 🔍 DEBUG: Log state for debugging campanita issue
-    console.log('🔔 Debug getUnreadCount called:', {
-      serverUnreadCount,
-      usingMockData,
-      notificationsLength: notifications?.length || 0,
-      manualCount: notifications ? notifications.filter(n => !n.isRead).length : 0,
-      fullState: { serverUnreadCount: state.serverUnreadCount, usingMockData: state.usingMockData }
-    });
     
     // 🔔 FIXED: Use backend count when available (preferred)
     if (serverUnreadCount !== null && !usingMockData) {
-      console.log('🔔 Using backend count:', serverUnreadCount);
       return serverUnreadCount;
     }
     
     // Fallback: Calculate manually for mock data or when backend count is not available
     if (!notifications) return 0;
     const manualCount = notifications.filter(n => !n.isRead).length;
-    console.log('🔔 Using manual count:', manualCount);
     return manualCount;
   },
   
@@ -110,26 +95,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     set({ isLoading: true, error: null, currentUserId: userId });
     
     try {
-      console.log(`🔗 Fetching notifications for user: ${userId}`);
       const result = await fetchNotificationsUseCase.execute({ userId });
       
-      if (result.success) {
-        // Debug: Log the actual result structure
-        console.log('🔍 Debug - Full result:', result);
-        console.log('🔍 Debug - result.data:', result.data);
-        
-        // Handle the data structure properly
+      if (result.success) {        
         let notificationItems: Notification[] = [];
-        console.log("result.data:", result.data );
         if (result.data?.notifications?.items && Array.isArray(result.data.notifications.items)) {
-          notificationItems = result.data.notifications.items;
-          
-          // 🚨 DEBUG: Log each notification ID to track duplicates
-          console.log('🔍 NOTIFICATION IDS FROM API:');
-          notificationItems.forEach((notif, index) => {
-            console.log(`  ${index + 1}. ${notif.id} - ${notif.title}`);
-          });
-          
+          notificationItems = result.data.notifications.items;          
+
           // 🚨 DEBUG: Check for duplicate IDs
           const ids = notificationItems.map(n => n.id);
           const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
@@ -146,16 +118,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           isLoading: false,
           usingMockData: false 
         });
-        console.log('✅ Notifications fetched successfully:', notificationItems.length);
       } else {
         // Check if we should use mock data
         if (shouldUseMockData(result.error)) {
-          console.log('⚠️ API error, using mock notifications for demo');
-          console.log('🔍 MOCK NOTIFICATION IDS:');
-          mockNotifications.forEach((notif, index) => {
-            console.log(`  ${index + 1}. ${notif.id} - ${notif.title}`);
-          });
-          
           set({ 
             notifications: mockNotifications, 
             isLoading: false,
@@ -169,11 +134,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
             usingMockData: false 
           });
         }
-        console.error('❌ Failed to fetch notifications:', result.error);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.log('⚠️ Exception caught, using mock notifications for demo');
 
       set({ 
         notifications: mockNotifications,
@@ -181,20 +144,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         isLoading: false,
         usingMockData: true 
       });
-      console.error('❌ Exception during fetch:', error);
     }
   },
   
   // Mark as read action with optimistic updates
   markAsRead: async (notificationId: string) => {
-    console.log('🔄 markAsRead called with ID:', notificationId);
     
     const { notifications, currentUserId, usingMockData } = get();
-    console.log('📊 Store state:', { 
-      notificationsCount: notifications?.length || 0, 
-      currentUserId, 
-      usingMockData 
-    });
     
     // Fix: Use demo as fallback if currentUserId is not set
     const userId = currentUserId || 'demo';
@@ -203,8 +159,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       console.warn('❌ Cannot mark as read: missing notifications');
       return;
     }
-    
-    console.log('🔄 Using userId:', userId, 'for notification:', notificationId);
     
     // Optimistic update (works for both mock and real data)
     const optimisticNotifications = notifications.map(notification =>
@@ -247,7 +201,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   dismiss: async (notificationId: string) => {
     const { notifications, currentUserId, usingMockData } = get();
     if (!notifications || !currentUserId) {
-      console.warn('❌ Cannot dismiss: missing notifications or userId');
       return;
     }
     
@@ -257,11 +210,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     );
     
     set({ notifications: optimisticNotifications });
-    console.log(`🔄 Optimistically dismissed notification ${notificationId}`);
     
     // If using mock data, don't try to call the API
     if (usingMockData) {
-      console.log('📝 Using mock data - dismiss saved locally only');
       return;
     }
     
@@ -298,11 +249,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const optimisticNotifications = notifications.map(notification => ({ ...notification, isRead: true }));
     
     set({ notifications: optimisticNotifications });
-    console.log(`🔄 Optimistically marked all notifications as read for user ${userId}`);
     
     // If using mock data, don't try to call the API
     if (usingMockData) {
-      console.log('📝 Using mock data - mark all as read saved locally only');
       return;
     }
     
@@ -310,17 +259,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       const result = await markAllAsReadUseCase.execute(userId);
       
       if (result.success) {
-        console.log(`✅ Successfully marked all notifications as read for user ${userId}`);
       } else {
         // Revert optimistic update on failure
         set({ notifications, error: result.error });
-        console.error(`❌ Failed to mark all notifications as read:`, result.error);
       }
     } catch (error) {
       // Revert optimistic update on exception
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({ notifications, error: errorMessage });
-      console.error(`❌ Exception during markAllAsRead:`, error);
     }
   },
   
@@ -346,31 +292,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         const notificationItems = notificationList.items || [];
         const unreadCount = notificationList.unreadCount || 0;  // 🔔 NEW: Get from backend
         
-        console.log('✅ My notifications fetched successfully:', notificationItems.length);
-        console.log('🔔 Unread count from backend:', unreadCount);  // Debug log
-        console.log('🔍 Debug fetchMyNotifications - Full response:', response);
-        console.log('🔍 Debug fetchMyNotifications - NotificationList:', notificationList);
-        console.log('🔍 Debug fetchMyNotifications - Items:', notificationItems.map(n => ({ id: n.id, title: n.title, isRead: n.isRead, status: n.status })));
-        
-        // 🔍 DEBUG: Detailed isRead status verification
-        console.log('🔍 DETAILED isRead STATUS CHECK:');
-        notificationItems.forEach((notification, index) => {
-          console.log(`  Notification ${index + 1}:`, {
-            id: notification.id,
-            title: notification.title.substring(0, 40) + '...',
-            isRead: notification.isRead,
-            type: typeof notification.isRead,
-            rawValue: JSON.stringify(notification.isRead)
-          });
-        });
-        
         // 🔍 DEBUG: Manual count calculation for comparison
         const manualUnreadCount = notificationItems.filter(n => !n.isRead).length;
-        console.log('🔍 Manual unread count vs backend:', { manualUnreadCount, backendUnreadCount: unreadCount });
         
         // 🔧 TEMPORARY FIX: Use manual count if backend count is incorrect
         const finalUnreadCount = manualUnreadCount > 0 && unreadCount === 0 ? manualUnreadCount : unreadCount;
-        console.log('🔧 Using final count:', finalUnreadCount);
         
         set({ 
           notifications: notificationItems, 
@@ -522,23 +448,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const optimisticNotifications = notifications.map(notification => ({ ...notification, isRead: true }));
     
     set({ notifications: optimisticNotifications });
-    console.log('🔄 Optimistically marked all my notifications as read');
     
     try {
       const result = await markAllMyNotificationsAsReadUseCase.execute();
       
       if (result.success) {
-        console.log('✅ Successfully marked all my notifications as read');
       } else {
         // Revert optimistic update on failure
         set({ notifications, error: result.error });
-        console.error('❌ Failed to mark all my notifications as read:', result.error);
       }
     } catch (error) {
       // Revert optimistic update on exception
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       set({ notifications, error: errorMessage });
-      console.error('❌ Exception during markAllMyNotificationsAsRead:', error);
     }
   },
   

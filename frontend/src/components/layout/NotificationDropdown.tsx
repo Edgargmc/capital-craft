@@ -39,27 +39,12 @@ export function NotificationDropdown({ onClose, onNavigateToNotifications, userI
     usingMockData
   } = useNotificationStore();
 
-  // Debug: Log component state (development only)
-  if (process.env.NODE_ENV === 'development' && Math.random() < 0.05) {
-    console.log('🔧 NotificationDropdown rendered:', {
-      notificationsCount: notifications?.length || 0,
-      isLoading,
-      isAuthenticated,
-      usingMockData
-    });
-  }
-
-  // Close on click outside - PROBLEMATIC, DISABLED
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         onClose();
       }
     }
-
-    // DISABLED - This interferes with notification clicks
-    // document.addEventListener('mousedown', handleClickOutside);
-    // return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
   // Close on Escape key
@@ -106,9 +91,7 @@ export function NotificationDropdown({ onClose, onNavigateToNotifications, userI
   };
 
   // Handle notification click - Smart method selection
-  const handleNotificationClick = async (notification: Notification) => {
-    console.log('🖱️ Notification clicked:', notification.id);
-    
+  const handleNotificationClick = async (notification: Notification) => {    
     try {
       if (isAuthenticated) {
         // Use authenticated methods when user is authenticated
@@ -169,7 +152,6 @@ export function NotificationDropdown({ onClose, onNavigateToNotifications, userI
     try {
       // Use authenticated method if user is authenticated, otherwise use original method
       if (isAuthenticated) {
-        console.log('🔐 Using authenticated method: markAllMyNotificationsAsRead');
         await markAllMyNotificationsAsRead();
      
       }
@@ -185,10 +167,8 @@ export function NotificationDropdown({ onClose, onNavigateToNotifications, userI
     try {
       // Use authenticated method if user is authenticated, otherwise use original method
       if (isAuthenticated) {
-        console.log('🔐 Using authenticated method: dismissMyNotification');
         await dismissMyNotification(notificationId);
       } else {
-        console.log('👤 Using original method: dismiss');
         await dismiss(notificationId);
       }
     } catch (error) {
@@ -239,17 +219,7 @@ export function NotificationDropdown({ onClose, onNavigateToNotifications, userI
           </div>
         ) : notifications && notifications.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {/* 🔧 OPTIMIZED: Show only recent/unread notifications (max 5) */}
             {getDropdownNotifications(notifications).map((notification, index) => {
-              // DEBUG: Log notification status for styling verification
-              console.log(`🔍 Notification ${index + 1}:`, {
-                id: notification.id,
-                title: notification.title.substring(0, 30) + '...',
-                isRead: notification.isRead,
-                shouldHaveBlueBackground: !notification.isRead,
-                appliedClasses: !notification.isRead ? 'bg-blue-50 hover:bg-blue-100' : 'default'
-              });
-              
               return (
                 <div
                   key={notification.id}

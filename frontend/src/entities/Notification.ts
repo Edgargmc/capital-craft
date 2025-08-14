@@ -53,7 +53,7 @@ export interface NotificationApiResponse {
   deep_link: string;
   trigger_type: string;
   status: 'pending' | 'sent' | 'read' | 'dismissed';
-  created_at: string;
+  createdAt: string;
   sent_at: string | null;
   isRead: boolean;
 }
@@ -130,7 +130,7 @@ export class NotificationEntity {
       deepLink: apiResponse.deep_link,
       isRead: apiResponse.isRead,  // 🔧 FIXED: Use isRead field directly from API response
       status: apiResponse.status,
-      createdAt: apiResponse.created_at,
+      createdAt: apiResponse.createdAt,  // 🔧 FIXED: Use camelCase createdAt from backend
       priority: this.determinePriority(apiResponse.trigger_type)
     };
   }

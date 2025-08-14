@@ -20,7 +20,7 @@ describe('NotificationEntity', () => {
     deep_link: '/learning/content/volatility_basics',
     trigger_type: 'educational_moment',
     status: 'pending',
-    created_at: '2025-08-05T00:45:11.372824',
+    createdAt: '2025-08-05T00:45:11.372824',
     sent_at: null,
     isRead: false
   };
@@ -37,7 +37,7 @@ describe('NotificationEntity', () => {
       expect(result.triggerType).toBe('educational_moment');
       expect(result.type).toBe('education'); // educational_moment maps to education
       expect(result.isRead).toBe(false); // status 'pending' maps to isRead: false
-      expect(result.createdAt).toBe(mockApiResponse.created_at); // Should be ISO string
+      expect(result.createdAt).toBe(mockApiResponse.createdAt); // Should be ISO string
       expect(result.priority).toBe('medium'); // educational_moment has medium priority
       expect(result.userId).toBe('demo'); // Default user
       expect(result.metadata).toEqual({}); // Empty metadata for this response
