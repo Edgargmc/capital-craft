@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   TrendingUp,
   Menu,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ const navigation = [
 
 const secondaryNavigation = [
   { id: 'settings', name: 'Settings', icon: Settings },
+  { id: 'notifications', name: 'Notifications', icon: Bell },
   { id: 'feedback', name: 'Give Feedback', icon: MessageSquare },
 ];
 

@@ -21,6 +21,7 @@ interface AppLayoutProps {
   userId?: string;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
+  onNavigateToNotifications?: () => void;
 }
 
 export function AppLayout({ 
@@ -31,7 +32,8 @@ export function AppLayout({
   onSellClick,
   userId,
   activeTab = 'dashboard',
-  setActiveTab
+  setActiveTab,
+  onNavigateToNotifications
 }: AppLayoutProps) {
   const [internalActiveTab, setInternalActiveTab] = useState('dashboard');
   
@@ -51,6 +53,7 @@ export function AppLayout({
             onBuyClick={onBuyClick}
             onSellClick={onSellClick}
             userId={userId}
+            onNavigateToNotifications={onNavigateToNotifications}
           />
         </div>
         

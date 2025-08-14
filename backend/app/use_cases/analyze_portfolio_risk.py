@@ -39,9 +39,11 @@ class AnalyzePortfolioRisk:
     
     def __init__(self, 
                  get_stock_data_use_case, 
-                 notification_service: Optional[GenerateNotificationUseCase] = None):
+                 notification_service: Optional[GenerateNotificationUseCase] = None,
+                 notification_repository=None):
         self.get_stock_data_use_case = get_stock_data_use_case
         self.notification_service = notification_service  # NEW: Optional dependency
+        self.notification_repository = notification_repository  # NEW: For duplicate detection
     
     async def execute(self, portfolio: Portfolio, user_id: str) -> PortfolioRiskAnalysis:
         """
@@ -116,12 +118,20 @@ class AnalyzePortfolioRisk:
         if risk_level in ["HIGH", "MEDIUM"]:
             # Check if we already have a recent risk notification for this level
             has_recent_risk_notification = any(
-                notif.trigger_type == "risk_change" and 
+                notif.trigger_type == NotificationTriggerType.RISK_CHANGE and 
                 notif.trigger_data.get("new_risk_level") == risk_level
                 for notif in recent_notifications
             )
             
+            print(f"🔍 RISK DUPLICATE CHECK: risk_level={risk_level}, has_recent={has_recent_risk_notification}")
+            print(f"🔍 Recent notifications check:")
+            for notif in recent_notifications:
+                print(f"  - Type: {notif.trigger_type} (is enum: {type(notif.trigger_type)})")
+                print(f"  - Data: {notif.trigger_data}")
+                print(f"  - Matches: {notif.trigger_type == NotificationTriggerType.RISK_CHANGE}")
+            
             if not has_recent_risk_notification:
+                print(f"✅ GENERATING new RISK_CHANGE notification for {risk_level}")
                 notification = await self.notification_service.execute(
                     user_id=user_id,
                     trigger_type=NotificationTriggerType.RISK_CHANGE,
@@ -133,18 +143,23 @@ class AnalyzePortfolioRisk:
                 )
                 if notification:
                     notifications_count += 1
+            else:
+                print(f"🚫 SKIPPING duplicate RISK_CHANGE notification for {risk_level}")
         
         # 2. Educational moment based on learning trigger
         if learning_trigger:
             # Check if we already have a recent educational notification for this topic
             topic = self._get_topic_for_trigger(learning_trigger)
             has_recent_educational_notification = any(
-                notif.trigger_type == "educational_moment" and 
+                notif.trigger_type == NotificationTriggerType.EDUCATIONAL_MOMENT and 
                 notif.trigger_data.get("topic") == topic
                 for notif in recent_notifications
             )
             
+            print(f"🔍 EDUCATIONAL DUPLICATE CHECK: topic={topic}, has_recent={has_recent_educational_notification}")
+            
             if not has_recent_educational_notification:
+                print(f"✅ GENERATING new EDUCATIONAL_MOMENT notification for {topic}")
                 notification = await self.notification_service.execute(
                     user_id=user_id,
                     trigger_type=NotificationTriggerType.EDUCATIONAL_MOMENT,
@@ -157,6 +172,8 @@ class AnalyzePortfolioRisk:
                 )
                 if notification:
                     notifications_count += 1
+            else:
+                print(f"🚫 SKIPPING duplicate EDUCATIONAL_MOMENT notification for {topic}")
         
         # 3. Portfolio-specific notifications for individual holdings
         notifications_count += await self._generate_holding_notifications(
@@ -169,10 +186,39 @@ class AnalyzePortfolioRisk:
         """Get recent notifications for the user to check for duplicates"""
         from datetime import datetime, timedelta, timezone
         
-        # This would need to be implemented in the notification repository
-        # For now, return empty list to disable duplicate checking
-        # TODO: Implement proper duplicate detection with repository
-        return []
+        if not self.notification_repository:
+            # If no repository available, disable duplicate checking
+            return []
+        
+        try:
+            # Get notifications from the last N hours
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+            
+            # Fetch recent notifications for the user
+            recent_notifications = await self.notification_repository.get_user_notifications(
+                user_id=user_id,
+                status=None,  # Get all notifications regardless of status
+                limit=50  # Check last 50 notifications 
+            )
+            
+            # Filter by time and return only recent ones
+            filtered_notifications = [
+                notif for notif in recent_notifications
+                if notif.created_at >= cutoff_time
+            ]
+            
+            print(f"🔍 DUPLICATE CHECK: Found {len(recent_notifications)} total notifications, {len(filtered_notifications)} in last {hours}h")
+            
+            # Debug: Show what recent notifications we found
+            for notif in filtered_notifications[-5:]:  # Show last 5
+                print(f"  - {notif.trigger_type}: {notif.trigger_data} (created: {notif.created_at})")
+            
+            return filtered_notifications
+            
+        except Exception as e:
+            print(f"⚠️ Error fetching recent notifications for duplicate check: {e}")
+            # On error, allow generation (fail open)
+            return []
     
     async def _generate_holding_notifications(
         self, 

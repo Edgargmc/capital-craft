@@ -299,9 +299,5 @@ def get_analyze_portfolio_risk_use_case() -> AnalyzePortfolioRisk:
     # Get notification repository for duplicate detection
     notification_repository = _get_container().get_notification_repository()
     
-    # UPDATED: Include notification repository for duplicate detection
-    return AnalyzePortfolioRisk(
-        get_stock_data, 
-        notification_service, 
-        notification_repository
-    )
+    # ✅ FIXED: Include notification repository for duplicate detection
+    return AnalyzePortfolioRisk(get_stock_data, notification_service, notification_repository)

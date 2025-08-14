@@ -11,15 +11,17 @@ import {
   Check,
   Trash2
 } from 'lucide-react';
+import Link from 'next/link';  // 🔧 ADDED: Next.js Link for navigation
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { Notification, NotificationType } from '@/entities/Notification';
 
 interface NotificationDropdownProps {
   onClose: () => void;
+  onNavigateToNotifications?: () => void; // 🔧 NEW: Callback for navigation
   userId?: string;
 }
 
-export function NotificationDropdown({ onClose, userId }: NotificationDropdownProps) {
+export function NotificationDropdown({ onClose, onNavigateToNotifications, userId }: NotificationDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     notifications,
@@ -105,33 +107,61 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
 
   // Handle notification click - Smart method selection
   const handleNotificationClick = async (notification: Notification) => {
-    console.log('🖱️ Notification clicked:', notification.id, 'isAuthenticated:', isAuthenticated);
+    console.log('🖱️ Notification clicked:', notification.id);
     
-    if (!notification.isRead) {
-      try {
-        // Use authenticated method if user is authenticated, otherwise use original method
-        if (isAuthenticated) {
-          console.log('🔐 Using authenticated method: markMyNotificationAsRead');
+    try {
+      if (isAuthenticated) {
+        // Use authenticated methods when user is authenticated
+        if (!notification.isRead) {
           await markMyNotificationAsRead(notification.id);
-        } else {
-          console.log('👤 Using original method: markAsRead (requires userId)');
-          if (userId) {
-            await markAsRead(notification.id);
-          } else {
-            console.warn('⚠️ Cannot mark as read: no userId provided for non-authenticated user');
-          }
         }
-      } catch (error) {
-        console.error('❌ Error marking notification as read:', error);
+      } else {
+        // Fallback to original methods for non-authenticated users
+        if (!notification.isRead) {
+          await markAsRead(notification.id);
+        }
       }
+    } catch (error) {
+      console.error('❌ Error handling notification click:', error);
     }
+  };
+
+  /**
+   * Get notifications to display in dropdown
+   * BUSINESS LOGIC: Show unread notifications first, then important ones
+   * Single Responsibility: Filter and prioritize notifications for dropdown
+   */
+  const getDropdownNotifications = (notifications: Notification[]): Notification[] => {
+    // Priority 1: Unread notifications (all of them)
+    const unreadNotifications = notifications.filter(n => !n.isRead);
     
-    // Navigate to deep link if available
-    if (notification.deepLink) {
-      // In a real app, you'd use Next.js router
-      // router.push(notification.deepLink);
-      console.log('Navigating to:', notification.deepLink);
-    }
+    // Priority 2: High priority read notifications
+    const importantReadNotifications = notifications.filter(n => 
+      n.isRead && n.priority === 'high'
+    );
+    
+    // Priority 3: Recent read notifications (last 3 days)
+    const recentReadNotifications = notifications.filter(n => {
+      if (!n.isRead || n.priority === 'high') return false;
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      return new Date(n.createdAt) > threeDaysAgo;
+    });
+    
+    // Combine and limit to 5 total
+    const combinedNotifications = [
+      ...unreadNotifications,
+      ...importantReadNotifications,
+      ...recentReadNotifications
+    ];
+    
+    // Remove duplicates and limit to 5
+    const uniqueNotifications = combinedNotifications.filter(
+      (notification, index, array) => 
+        array.findIndex(n => n.id === notification.id) === index
+    );
+    
+    return uniqueNotifications.slice(0, 5);
   };
 
   // Handle mark all as read - Smart method selection
@@ -141,13 +171,7 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
       if (isAuthenticated) {
         console.log('🔐 Using authenticated method: markAllMyNotificationsAsRead');
         await markAllMyNotificationsAsRead();
-      } else {
-        console.log('👤 Using original method: markAllAsRead (requires userId)');
-        if (userId) {
-          await markAllAsRead(userId);
-        } else {
-          console.warn('⚠️ Cannot mark all as read: no userId provided for non-authenticated user');
-        }
+     
       }
     } catch (error) {
       console.error('❌ Error marking all notifications as read:', error);
@@ -177,7 +201,7 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
   return (
     <div 
       ref={dropdownRef}
-      className="absolute top-full right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
+      className="absolute top-full right-0 mt-2 w-96 md:w-96 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
@@ -215,7 +239,8 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
           </div>
         ) : notifications && notifications.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {notifications.map((notification, index) => {
+            {/* 🔧 OPTIMIZED: Show only recent/unread notifications (max 5) */}
+            {getDropdownNotifications(notifications).map((notification, index) => {
               // DEBUG: Log notification status for styling verification
               console.log(`🔍 Notification ${index + 1}:`, {
                 id: notification.id,
@@ -329,6 +354,18 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
                 </div>
               );
             })}
+            {notifications.length > 5 && (
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">
+                    {notifications.length - getDropdownNotifications(notifications).length} more notifications
+                  </span>
+                  <span className="text-blue-600 font-medium">
+                    {notifications.filter(n => !n.isRead).length} unread
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 px-4">
@@ -344,7 +381,13 @@ export function NotificationDropdown({ onClose, userId }: NotificationDropdownPr
       {/* Footer */}
       {notifications && notifications.length > 0 && (
         <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <button 
+            onClick={() => {
+              onClose();
+              onNavigateToNotifications?.();
+            }}
+            className="block w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2 rounded transition-colors hover:bg-blue-50"
+          >
             View all notifications
           </button>
         </div>

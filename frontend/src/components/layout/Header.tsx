@@ -148,9 +148,10 @@ interface HeaderProps {
   onBuyClick: () => void;
   onSellClick: () => void;
   userId?: string; // NEW: Added userId prop
+  onNavigateToNotifications?: () => void; // 🔧 NEW: Navigation callback
 }
 
-export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'demo' }: HeaderProps) {
+export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'demo', onNavigateToNotifications }: HeaderProps) {
   const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const [showDesktopNotifications, setShowDesktopNotifications] = useState(false);
   const { 
@@ -296,6 +297,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
                 {console.log('📋 Rendering NotificationDropdown (mobile)')}
                 <NotificationDropdown 
                   onClose={() => setShowMobileNotifications(false)}
+                  onNavigateToNotifications={onNavigateToNotifications}
                   userId={userId}
                 />
               </>
@@ -407,6 +409,7 @@ export function Header({ summary, loading, onBuyClick, onSellClick, userId = 'de
                 {console.log('📋 Rendering NotificationDropdown (desktop)')}
                 <NotificationDropdown 
                   onClose={() => setShowDesktopNotifications(false)}
+                  onNavigateToNotifications={onNavigateToNotifications}
                   userId={userId}
                 />
               </>

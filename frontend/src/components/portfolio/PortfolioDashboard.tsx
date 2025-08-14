@@ -11,6 +11,7 @@ import { SellStockModal } from '@/components/modals/SellStockModal';
 import { LearningAlert } from '@/components/learning/LearningAlert';
 import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { SettingsPage } from '@/components/settings/SettingsPage';
+import { NotificationsPage } from '@/components/notifications/NotificationsPage';
 import { RiskAnalysis } from '@/lib/api';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -107,12 +108,21 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
   return (
     <>
       <AppLayout 
-        headerData={headerData} 
+        headerData={{
+          cashBalance: summary?.cash_balance || 0,
+          totalPortfolioValue: summary?.total_portfolio_value || 0,
+          totalUnrealizedPnl: summary?.total_unrealized_pnl || 0,
+          totalUnrealizedPnlPercent: summary?.total_unrealized_pnl_percent || 0,
+          holdingsCount: summary?.holdings_count || 0,
+          holdings: summary?.holdings || {}
+        }}
         headerLoading={loading}
         onBuyClick={() => setShowBuyModal(true)}
         onSellClick={() => setShowSellModal(true)}
+        userId={userId}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onNavigateToNotifications={() => setActiveTab('notifications')} 
       >
         {activeTab === 'portfolio' ? (
           <div className="p-6">
@@ -187,6 +197,8 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
           </div>
         ) : activeTab === 'settings' ? (
           <SettingsPage />
+        ) : activeTab === 'notifications' ? (
+          <NotificationsPage />
         ) : null}
       </AppLayout>
 
