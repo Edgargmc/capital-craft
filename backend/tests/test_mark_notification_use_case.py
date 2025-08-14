@@ -14,10 +14,14 @@ from unittest.mock import AsyncMock, Mock
 
 from app.use_cases.mark_notification_as_read import (
     MarkNotificationAsReadUseCase,
-    NotificationNotFoundError,
-    NotificationAlreadyDismissedError
+    NotificationNotFoundError as MarkNotificationNotFoundError,
+    NotificationAlreadyDismissedError as MarkNotificationAlreadyDismissedError
 )
-from app.use_cases.dismiss_notification import DismissNotificationUseCase
+from app.use_cases.dismiss_notification import (
+    DismissNotificationUseCase,
+    NotificationNotFoundError as DismissNotificationNotFoundError,
+    NotificationAlreadyDismissedError as DismissNotificationAlreadyDismissedError
+)
 from app.use_cases.mark_all_notifications_as_read import MarkAllNotificationsAsReadUseCase
 from app.core.entities.notification import (
     Notification,
@@ -74,7 +78,7 @@ class TestMarkNotificationAsReadUseCase:
         mock_repository.get_notification_by_id.return_value = None
         
         # Act & Assert
-        with pytest.raises(NotificationNotFoundError) as exc_info:
+        with pytest.raises(MarkNotificationNotFoundError) as exc_info:
             await use_case.execute("non-existent-id")
         
         assert "Notification with ID non-existent-id not found" in str(exc_info.value)
@@ -88,7 +92,7 @@ class TestMarkNotificationAsReadUseCase:
         mock_repository.get_notification_by_id.return_value = sample_notification
         
         # Act & Assert
-        with pytest.raises(NotificationAlreadyDismissedError) as exc_info:
+        with pytest.raises(MarkNotificationAlreadyDismissedError) as exc_info:
             await use_case.execute("test-id")
         
         assert "Cannot modify dismissed notification test-id" in str(exc_info.value)
@@ -155,7 +159,7 @@ class TestDismissNotificationUseCase:
         mock_repository.get_notification_by_id.return_value = None
         
         # Act & Assert
-        with pytest.raises(NotificationNotFoundError) as exc_info:
+        with pytest.raises(DismissNotificationNotFoundError) as exc_info:
             await use_case.execute("non-existent-id")
         
         assert "Notification with ID non-existent-id not found" in str(exc_info.value)
@@ -169,7 +173,7 @@ class TestDismissNotificationUseCase:
         mock_repository.get_notification_by_id.return_value = sample_notification
         
         # Act & Assert
-        with pytest.raises(NotificationAlreadyDismissedError) as exc_info:
+        with pytest.raises(DismissNotificationAlreadyDismissedError) as exc_info:
             await use_case.execute("test-id")
         
         assert "Notification test-id is already dismissed" in str(exc_info.value)

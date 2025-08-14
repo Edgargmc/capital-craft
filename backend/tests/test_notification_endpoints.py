@@ -80,12 +80,25 @@ class TestNotificationEndpoints:
     @pytest.fixture
     def client_with_test_data(self, temp_data_file):
         """Create test client with temporary data file"""
-        # Replace the repository with test repository
-        test_repository = JSONNotificationRepository(temp_data_file)
-        container = get_container()
-        container.register_mock_repository(test_repository)
+        import os
         
-        return TestClient(app)
+        # Use the existing mock repository system
+        original_mock = os.environ.get('USE_MOCK_REPOSITORY')
+        os.environ['USE_MOCK_REPOSITORY'] = 'true'
+        
+        try:
+            # Replace the repository with test repository
+            test_repository = JSONNotificationRepository(temp_data_file)
+            container = get_container()
+            container.register_mock_repository(test_repository)
+            
+            yield TestClient(app)
+        finally:
+            # Restore original environment
+            if original_mock is not None:
+                os.environ['USE_MOCK_REPOSITORY'] = original_mock
+            else:
+                os.environ.pop('USE_MOCK_REPOSITORY', None)
     
     def test_patch_notification_mark_as_read_success(self, client_with_test_data):
         """Test PATCH /notifications/{id} - mark as read success"""

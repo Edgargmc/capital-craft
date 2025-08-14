@@ -39,6 +39,7 @@ class Notification:
     id: Optional[str] = None
     status: NotificationStatus = NotificationStatus.PENDING
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     sent_at: Optional[datetime] = None
     is_read: bool = False
     dismissed: bool = False
@@ -50,27 +51,34 @@ class Notification:
             self.id = str(uuid.uuid4())
         if self.created_at is None:
             self.created_at = datetime.now()
+        if self.updated_at is None:
+            self.updated_at = datetime.now()
     
     def mark_as_sent(self) -> None:
         """Mark notification as successfully sent"""
         self.status = NotificationStatus.SENT
         self.sent_at = datetime.now()
+        self.updated_at = datetime.now()
     
     def mark_as_failed(self) -> None:
         """Mark notification as failed to send"""
         self.status = NotificationStatus.FAILED
+        self.updated_at = datetime.now()
     
     def mark_as_read(self) -> None:
         """Mark notification as read by user"""
         self.is_read = True
+        self.updated_at = datetime.now()
     
     def mark_as_unread(self) -> None:
         """Mark notification as unread"""
         self.is_read = False
+        self.updated_at = datetime.now()
     
     def dismiss(self) -> None:
         """Dismiss notification (soft delete)"""
         self.dismissed = True
+        self.updated_at = datetime.now()
     
     def can_be_dismissed(self) -> bool:
         """Check if notification can be dismissed"""

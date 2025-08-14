@@ -18,7 +18,9 @@ interface AppLayoutProps {
   headerLoading?: boolean;
   onBuyClick: () => void;
   onSellClick: () => void;
-  userId?: string; 
+  userId?: string;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
 }
 
 export function AppLayout({ 
@@ -27,13 +29,19 @@ export function AppLayout({
   headerLoading = false, 
   onBuyClick,
   onSellClick,
-  userId
+  userId,
+  activeTab = 'dashboard',
+  setActiveTab
 }: AppLayoutProps) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [internalActiveTab, setInternalActiveTab] = useState('dashboard');
+  
+  // Use external activeTab/setActiveTab if provided, otherwise use internal state
+  const currentActiveTab = activeTab;
+  const handleTabChange = setActiveTab || setInternalActiveTab;
 
   return (
     <div className="h-screen flex bg-gray-50">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={currentActiveTab} onTabChange={handleTabChange} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="pt-12 md:pt-0">

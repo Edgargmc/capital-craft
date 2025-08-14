@@ -133,6 +133,7 @@ class JSONNotificationRepository(NotificationRepository):
         )
     
     async def save_notification(self, notification: Notification) -> None:
+        print("Saving notification to JSON file", notification)
         """Save notification to JSON file"""
         data = self._read_data()
         

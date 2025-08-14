@@ -9,6 +9,7 @@ from app.use_cases.search_stocks import SearchStocksUseCase
 from app.use_cases.create_portfolio import CreatePortfolio
 from app.use_cases.buy_stock import BuyStock 
 from pydantic import BaseModel
+from typing import Optional
 from app.use_cases.sell_stock import SellStock
 from app.use_cases.analyze_portfolio_risk import AnalyzePortfolioRisk
 from app.use_cases.get_learning_content import GetLearningContent, GetRecommendedContent
@@ -17,8 +18,8 @@ from app.core.entities.learning_content import LearningContent
 
 # Updated notification system imports with dependency injection
 from app.use_cases.generate_notification import GenerateNotificationUseCase
-from app.use_cases.mark_notification_as_read import MarkNotificationAsReadUseCase, NotificationNotFoundError, NotificationAlreadyDismissedError
-from app.use_cases.dismiss_notification import DismissNotificationUseCase
+from app.use_cases.mark_notification_as_read import MarkNotificationAsReadUseCase, NotificationNotFoundError as MarkNotificationNotFoundError, NotificationAlreadyDismissedError as MarkNotificationAlreadyDismissedError
+from app.use_cases.dismiss_notification import DismissNotificationUseCase, NotificationNotFoundError as DismissNotificationNotFoundError, NotificationAlreadyDismissedError as DismissNotificationAlreadyDismissedError
 from app.use_cases.mark_all_notifications_as_read import MarkAllNotificationsAsReadUseCase
 from app.infrastructure.dependency_injection import (
     get_notification_repository,
@@ -715,18 +716,25 @@ async def mark_notification_as_read(
     Following Clean Architecture with dependency injection
     """
     try:
-        success = await use_case.execute(notification_id)
-        if success:
-            return {
-                "success": True,
-                "message": "Notification marked as read",
-                "notification_id": notification_id
+        notification = await use_case.execute(notification_id)
+        return {
+            "success": True,
+            "message": "Notification marked as read",
+            "data": {
+                "id": notification.id,
+                "userId": notification.user_id,
+                "title": notification.title,
+                "message": notification.message,
+                "isRead": notification.is_read,
+                "dismissed": notification.dismissed,
+                "createdAt": notification.created_at.isoformat() if notification.created_at else None,
+                "updatedAt": notification.updated_at.isoformat() if notification.updated_at else None
             }
-        else:
-            raise HTTPException(
-                status_code=404,
-                detail="Notification not found or already dismissed"
-            )
+        }
+    except MarkNotificationNotFoundError:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    except MarkNotificationAlreadyDismissedError:
+        raise HTTPException(status_code=400, detail="Cannot modify dismissed notification")
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -743,27 +751,33 @@ async def dismiss_notification(
     Following Clean Architecture with dependency injection
     """
     try:
-        success = await use_case.execute(notification_id)
-        if success:
-            return {
-                "success": True,
-                "message": "Notification dismissed",
-                "notification_id": notification_id
+        notification = await use_case.execute(notification_id)
+        return {
+            "success": True,
+            "message": "Notification dismissed successfully",
+            "data": {
+                "id": notification.id,
+                "userId": notification.user_id,
+                "dismissed": notification.dismissed,
+                "updatedAt": notification.updated_at.isoformat() if notification.updated_at else None
             }
-        else:
-            raise HTTPException(
-                status_code=404,
-                detail="Notification not found or cannot be dismissed"
-            )
+        }
+    except DismissNotificationNotFoundError:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    except DismissNotificationAlreadyDismissedError:
+        raise HTTPException(status_code=400, detail="Notification is already dismissed")
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error dismissing notification: {str(e)}"
         )
 
+class MarkAllAsReadRequest(BaseModel):
+    userId: Optional[str] = None
+
 @app.post("/notifications/mark-all-read")
 async def mark_all_notifications_as_read(
-    request: dict,
+    request: MarkAllAsReadRequest,
     use_case: MarkAllNotificationsAsReadUseCase = Depends(get_mark_all_notifications_as_read_use_case)
 ):
     """
@@ -771,7 +785,7 @@ async def mark_all_notifications_as_read(
     Following Clean Architecture with dependency injection
     """
     try:
-        user_id = request.get("userId")
+        user_id = request.userId
         if not user_id:
             raise HTTPException(
                 status_code=400,
@@ -782,9 +796,14 @@ async def mark_all_notifications_as_read(
         return {
             "success": True,
             "message": f"Marked {marked_count} notifications as read",
-            "user_id": user_id,
-            "marked_count": marked_count
+            "data": {
+                "userId": user_id,
+                "markedCount": marked_count
+            }
         }
+    except HTTPException:
+        # Re-raise HTTPException as-is (don't wrap in 500)
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -805,26 +824,31 @@ async def get_notification_by_id(
         if not notification:
             raise HTTPException(
                 status_code=404,
-                detail="Notification not found"
+                detail=f"Notification with ID {notification_id} not found"
             )
         
         return {
             "success": True,
             "data": {
                 "id": notification.id,
+                "userId": notification.user_id,
                 "title": notification.title,
                 "message": notification.message,
-                "deep_link": notification.deep_link,
-                "trigger_type": notification.trigger_type.value,
+                "deepLink": notification.deep_link,
+                "triggerType": notification.trigger_type.value,
+                "triggerData": notification.trigger_data,
                 "status": notification.status.value,
-                "created_at": notification.created_at.isoformat() if notification.created_at else None,
-                "sent_at": notification.sent_at.isoformat() if notification.sent_at else None,
+                "createdAt": notification.created_at.isoformat() if notification.created_at else None,
+                "sentAt": notification.sent_at.isoformat() if notification.sent_at else None,
                 "type": notification.notification_type,
                 "priority": notification.priority,
                 "isRead": notification.is_read,
                 "dismissed": notification.dismissed
             }
         }
+    except HTTPException:
+        # Re-raise HTTPException as-is (don't wrap in 500)
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -842,12 +866,24 @@ def health_check():
         # Check learning content system
         content_count = len(get_learning_content_use_case.execute_list_all())
         
-        # Check notification system
-        notification_system_healthy = True  # Always healthy with DI
-        
-        # Check portfolio repository type and health
+        # Get container for repositories
         from app.infrastructure.dependency_injection import get_container
         container = get_container()
+        
+        # Check notification system with feature flags
+        notification_repo = container.get_notification_repository()
+        notification_health = {}
+        
+        # Get notification health status
+        if hasattr(notification_repo, 'get_health_status'):
+            notification_health = notification_repo.get_health_status()
+        else:
+            notification_health = {
+                "repository_type": type(notification_repo).__name__,
+                "status": "healthy"
+            }
+        
+        # Check portfolio repository type and health (container already imported above)
         portfolio_repo = container.get_portfolio_repository()
         portfolio_storage_type = type(portfolio_repo).__name__
         
@@ -901,13 +937,13 @@ def health_check():
             "storage": {
                 "stock_data_provider": os.getenv("STOCK_DATA_PROVIDER", "mock"),
                 "portfolio_storage": storage_info,
-                "notification_storage": "JSON",
+                "notification_storage": notification_health,
                 "learning_content": "Markdown files"
             },
             "statistics": {
                 "learning_content_available": content_count,
                 "portfolio_files": data_files_count,
-                "notification_system": "active" if notification_system_healthy else "inactive"
+                "notification_system": "active"
             },
             "environment": {
                 "portfolio_storage_env": os.getenv("PORTFOLIO_STORAGE", "json (default)"),

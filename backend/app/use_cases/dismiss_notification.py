@@ -47,12 +47,12 @@ class DismissNotificationUseCase:
         """
         self.notification_repository = notification_repository
     
-    async def execute(self, notification_id: str) -> bool:
+    async def execute(self, notification_id: str) -> Notification:
         """
         Execute the dismiss notification use case
         
         @param notification_id Unique identifier of the notification
-        @returns True if successfully dismissed
+        @returns Updated notification entity  
         @raises NotificationNotFoundError When notification doesn't exist
         @raises NotificationAlreadyDismissedError When notification already dismissed
         
@@ -86,4 +86,4 @@ class DismissNotificationUseCase:
         # Persist changes
         await self.notification_repository.save_notification(notification)
         
-        return True
+        return notification

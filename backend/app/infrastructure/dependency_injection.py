@@ -17,6 +17,8 @@ from fastapi import Depends
 from ..core.interfaces.notification_repository import NotificationRepository
 from ..infrastructure.json_notification_repository import JSONNotificationRepository
 from ..infrastructure.providers.mock_notification_repository import MockNotificationRepository
+from ..infrastructure.repositories.postgresql_notification_repository import PostgreSQLNotificationRepository
+from ..infrastructure.repositories.smart_notification_repository import SmartNotificationRepository
 from ..use_cases.generate_notification import GenerateNotificationUseCase
 from ..use_cases.mark_notification_as_read import MarkNotificationAsReadUseCase
 from ..use_cases.dismiss_notification import DismissNotificationUseCase
@@ -63,17 +65,45 @@ class DIContainer:
     def _setup_repositories(self) -> None:
         """Setup repository implementations based on environment"""
         
-        # Setup notification repository
-        print(f"USE_MOCK_REPOSITORY: {os.getenv("USE_MOCK_REPOSITORY", "false").lower()}")
+        self._setup_notification_repository()
+        self._setup_portfolio_repository()
+    
+    def _setup_notification_repository(self) -> None:
+        """Setup notification repository based on configuration"""
+        # Check for mock repository first (testing)
         if os.getenv("USE_MOCK_REPOSITORY", "false").lower() == "true":
-            print(f"USE_MOCK_REPOSITORY: True")
+            print("🔧 Notification repository: MockNotificationRepository (testing)")
             self._dependencies["notification_repository"] = MockNotificationRepository()
+            return
+        
+        # Check if smart repository is enabled (default: true for feature flags)
+        use_smart_repo = os.getenv("USE_SMART_NOTIFICATION_REPOSITORY", "true").lower() == "true"
+        
+        if use_smart_repo:
+            # Smart repository with feature flag support
+            print("🧠 Notification repository: SmartNotificationRepository (feature flag routing)")
+            self._dependencies["notification_repository"] = SmartNotificationRepository()
+            return
+        
+        # Legacy single-backend setup
+        storage_type = os.getenv("NOTIFICATION_STORAGE", "json").lower()
+        
+        if storage_type == "postgres" or storage_type == "postgresql":
+            # PostgreSQL storage (async database operations)
+            print("🔧 Notification repository: PostgreSQLNotificationRepository (database storage)")
+            from ..infrastructure.database.config import DatabaseConfig
+            db_config = DatabaseConfig()
+            self._dependencies["notification_repository"] = PostgreSQLNotificationRepository(db_config)
+        elif storage_type == "json":
+            # JSON file storage (original implementation)
+            data_path = os.getenv("NOTIFICATION_DATA_PATH", "data/notifications.json")
+            print(f"🔧 Notification repository: JSONNotificationRepository (path: {data_path})")
+            self._dependencies["notification_repository"] = JSONNotificationRepository(data_path)
         else:
-            print(f"USE_MOCK_REPOSITORY: False")
+            # Default to JSON (safest option)
+            print(f"🔧 Unknown NOTIFICATION_STORAGE '{storage_type}', using JSON")
             data_path = os.getenv("NOTIFICATION_DATA_PATH", "data/notifications.json")
             self._dependencies["notification_repository"] = JSONNotificationRepository(data_path)
-        
-        self._setup_portfolio_repository()
     
     def _setup_portfolio_repository(self) -> None:
         """Setup portfolio repository based on configuration"""

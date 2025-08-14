@@ -8,8 +8,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import List
 
-from sqlalchemy import Column, String, DECIMAL, DateTime, Boolean, Integer, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DECIMAL, DateTime, Boolean, Integer, ForeignKey, Text, JSON
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy import TypeDecorator
@@ -29,6 +29,20 @@ class UniversalUUID(TypeDecorator):
         else:
             # SQLite and other databases use String
             return dialect.type_descriptor(String(36))
+
+
+# JSON type that works with both PostgreSQL and SQLite
+class UniversalJSON(TypeDecorator):
+    """JSON type that adapts to the database backend"""
+    impl = Text
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(JSONB())
+        else:
+            # SQLite and other databases use JSON (fallback to Text)
+            return dialect.type_descriptor(JSON())
 
 
 class UserModel(Base):
@@ -59,7 +73,7 @@ class UserModel(Base):
     
     # Relationships
     portfolios = relationship("PortfolioModel", back_populates="user", cascade="all, delete-orphan")
-    notifications = relationship("NotificationModel", back_populates="user", cascade="all, delete-orphan")
+    # Note: notifications relationship removed since NotificationModel.user_id is not a FK
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, provider={self.provider})>"
@@ -123,38 +137,64 @@ class HoldingModel(Base):
 
 
 class NotificationModel(Base):
-    """SQLAlchemy model for Notification entity"""
+    """
+    SQLAlchemy model for Notification entity
+    Enhanced to match complete Notification entity structure
+    """
     __tablename__ = "notifications"
     
     # Primary key
     id = Column(UniversalUUID(), primary_key=True, default=uuid.uuid4)
     
-    # Foreign key to user
-    user_id = Column(UniversalUUID(), ForeignKey("users.id"), nullable=False, index=True)
+    # User association - flexible string to support both UUID and demo users
+    user_id = Column(String(255), nullable=False, index=True)  # Not FK to support demo users
     
-    # Notification data
+    # Notification content
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    trigger_type = Column(String(50), nullable=False, index=True)
+    notification_type = Column(String(50), nullable=False, default="education")  # education, achievement, market, system
+    priority = Column(String(20), nullable=False, default="medium")  # high, medium, low
     
-    # Status
+    # Navigation
+    deep_link = Column(String(500), nullable=True)
+    
+    # Trigger information
+    trigger_type = Column(String(100), nullable=False, index=True)  # educational_moment, portfolio_change, risk_change
+    trigger_data = Column(UniversalJSON, nullable=True)  # Flexible JSON data - PostgreSQL: JSONB, SQLite: JSON
+    
+    # Status tracking
     is_read = Column(Boolean, nullable=False, default=False, index=True)
-    is_dismissed = Column(Boolean, nullable=False, default=False, index=True)
+    dismissed = Column(Boolean, nullable=False, default=False, index=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending, sent, failed
     
     # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    read_at = Column(DateTime(timezone=True), nullable=True)
-    dismissed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    sent_at = Column(DateTime(timezone=True), nullable=True)
     
-    # Relationships
-    user = relationship("UserModel", back_populates="notifications")
+    # Indexes for performance
+    __table_args__ = (
+        # Composite index for common queries
+        {'schema': None}  # Will be updated below
+    )
     
     def __repr__(self):
-        return f"<Notification(id={self.id}, title={self.title}, is_read={self.is_read})>"
+        return f"<Notification(id={self.id}, user_id={self.user_id}, title={self.title[:30]}..., is_read={self.is_read})>"
 
 
-# Add unique constraint for holdings after table definition
-from sqlalchemy import UniqueConstraint
+# Add constraints and indexes after table definitions
+from sqlalchemy import UniqueConstraint, Index
+
+# Holdings unique constraint
 HoldingModel.__table_args__ = (
     UniqueConstraint('portfolio_id', 'symbol', name='uq_portfolio_symbol'),
+)
+
+# Notification performance indexes
+NotificationModel.__table_args__ = (
+    # Composite indexes for common notification queries
+    Index('idx_notifications_user_unread', 'user_id', 'is_read'),
+    Index('idx_notifications_user_created', 'user_id', 'created_at'),
+    Index('idx_notifications_user_status', 'user_id', 'dismissed', 'is_read'),
+    Index('idx_notifications_trigger_type', 'trigger_type'),
 )

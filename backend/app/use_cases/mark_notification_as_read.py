@@ -47,12 +47,12 @@ class MarkNotificationAsReadUseCase:
         """
         self.notification_repository = notification_repository
     
-    async def execute(self, notification_id: str) -> bool:
+    async def execute(self, notification_id: str) -> Notification:
         """
         Execute the mark as read use case
         
         @param notification_id Unique identifier of the notification
-        @returns True if successfully marked as read
+        @returns Updated notification entity
         @raises NotificationNotFoundError When notification doesn't exist
         @raises NotificationAlreadyDismissedError When notification is dismissed
         
@@ -81,4 +81,4 @@ class MarkNotificationAsReadUseCase:
         # Persist changes
         await self.notification_repository.save_notification(notification)
         
-        return True
+        return notification
