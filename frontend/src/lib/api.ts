@@ -138,81 +138,124 @@ export interface RefreshTokenRequest {
   refresh_token: string;
 }
 
+/**
+ * Enhanced CapitalCraftAPI with automatic authentication handling
+ * 
+ * @description API client with built-in token refresh and 401 handling
+ * @responsibility Single: Handle all API communication with authentication
+ * @principle Single Responsibility + Dependency Inversion
+ * 
+ * @layer Infrastructure Layer (API Client)
+ * @pattern Facade Pattern + Interceptor Pattern
+ * 
+ * @author Capital Craft Team
+ * @created 2025-08-14
+ * @version 2.0.0
+ */
 export class CapitalCraftAPI {
+  private static httpInterceptor: any = null;
 
-  static async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/auth/login`, {
+  /**
+   * Set HTTP interceptor for automatic authentication handling
+   * @param interceptor - HTTP interceptor instance
+   * @principle Dependency Injection
+   */
+  static setHttpInterceptor(interceptor: any): void {
+    this.httpInterceptor = interceptor;
+  }
+
+  /**
+   * Fetch wrapper with interceptor support
+   * @param url - URL to fetch
+   * @param options - Fetch options
+   * @param fetchFn - Optional fetch function for testing
+   * @returns Promise resolving to response
+   */
+  private static async fetch(url: string, options: RequestInit = {}, fetchFn: typeof fetch = fetch): Promise<Response> {
+    if (this.httpInterceptor) {
+      // Use intercepted fetch for automatic auth handling
+      const { interceptedFetch } = await import('../infrastructure/http/AuthHttpInterceptor');
+      return interceptedFetch(url, options, this.httpInterceptor, fetchFn);
+    }
+    
+    // Use regular fetch
+    return fetchFn(url, options);
+  }
+
+  static async login(credentials: LoginRequest, fetchFn?: typeof fetch): Promise<AuthResponse> {
+    const response = await this.fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
-    });
+    }, fetchFn);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.ok && response.status !== 401) {
+      const error = await response.json().catch(() => ({ detail: 'Login failed' }));
       throw new Error(error.detail || 'Login failed');
     }
 
     return response.json();
   }
 
-  static async register(userData: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/auth/register`, {
+  static async register(userData: RegisterRequest, fetchFn?: typeof fetch): Promise<AuthResponse> {
+    const response = await this.fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(userData),
-    });
+    }, fetchFn);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.ok && response.status !== 401) {
+      const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
       throw new Error(error.detail || 'Registration failed');
     }
 
     return response.json();
   }
 
-  static async refreshToken(refreshData: RefreshTokenRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
+  static async refreshToken(refreshData: RefreshTokenRequest, fetchFn?: typeof fetch): Promise<AuthResponse> {
+    const response = await this.fetch(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(refreshData),
-    });
+    }, fetchFn);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.ok && response.status !== 401) {
+      const error = await response.json().catch(() => ({ detail: 'Token refresh failed' }));
       throw new Error(error.detail || 'Token refresh failed');
     }
 
     return response.json();
   }
 
-  static async getCurrentUser(accessToken: string): Promise<User> {
-    const response = await fetch(`${API_BASE}/auth/me`, {
+  static async getCurrentUser(accessToken: string, fetchFn?: typeof fetch): Promise<User> {
+    const response = await this.fetch(`${API_BASE}/auth/me`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
-    });
+    }, fetchFn);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.ok && response.status !== 401) {
+      const error = await response.json().catch(() => ({ detail: 'Failed to get current user' }));
       throw new Error(error.detail || 'Failed to get current user');
     }
 
     return response.json();
   }
 
-  static async logout(): Promise<void> {
-    const response = await fetch(`${API_BASE}/auth/logout`, {
+  static async logout(fetchFn?: typeof fetch): Promise<void> {
+    const response = await this.fetch(`${API_BASE}/auth/logout`, {
       method: 'POST',
-    });
+    }, fetchFn);
 
-    if (!response.ok) {
-      const error = await response.json();
+    if (!response.ok && response.status !== 401) {
+      const error = await response.json().catch(() => ({ detail: 'Logout failed' }));
       throw new Error(error.detail || 'Logout failed');
     }
   }
@@ -221,102 +264,114 @@ export class CapitalCraftAPI {
     return `${API_BASE}/auth/google`;
   }
 
-  static async getStock(symbol: string): Promise<Stock> {
-    const response = await fetch(`${API_BASE}/stock/${symbol}`);
-    if (!response.ok) {
+  static async getStock(symbol: string, fetchFn?: typeof fetch): Promise<Stock> {
+    const response = await this.fetch(`${API_BASE}/stock/${symbol}`, {}, fetchFn);
+    if (!response.ok && response.status !== 401) {
       throw new Error('Failed to fetch stock data');
     }
     return response.json();
   }
 
-  static async getRiskAnalysis(userId: string): Promise<RiskAnalysis> {
-    const response = await fetch(`${API_BASE}/portfolio/${userId}/risk-analysis`);
-    if (!response.ok) {
+  static async getStocks(fetchFn?: typeof fetch): Promise<Stock[]> {
+    const response = await this.fetch(`${API_BASE}/stocks`, {}, fetchFn);
+    if (!response.ok && response.status !== 401) {
+      throw new Error('Failed to fetch stocks');
+    }
+    const result = await response.json();
+    return result.results || [];
+  }
+
+  static async getRiskAnalysis(userId: string, fetchFn?: typeof fetch): Promise<RiskAnalysis> {
+    const response = await this.fetch(`${API_BASE}/portfolio/${userId}/risk-analysis`, {}, fetchFn);
+    if (!response.ok && response.status !== 401) {
       throw new Error('Failed to fetch risk analysis');
     }
     const result = await response.json();
     return result.data; // Backend devuelve { success: true, data: {...} }
   }
 
-  static async getLearningContent(trigger: string): Promise<LearningContent> {
-    const response = await fetch(`${API_BASE}/learning/content/${trigger}`);
-    if (!response.ok) {
+  static async getLearningContent(trigger: string, fetchFn?: typeof fetch): Promise<LearningContent> {
+    const response = await this.fetch(`${API_BASE}/learning/content/${trigger}`, {}, fetchFn);
+    if (!response.ok && response.status !== 401) {
       throw new Error('Failed to fetch learning content');
     }
     const result = await response.json();
     return result.data;
   }
 
-  static async searchStocks(query: string, limit: number = 10): Promise<Stock[]> {
-    const response = await fetch(`${API_BASE}/stocks/search?q=${encodeURIComponent(query)}&limit=${limit}`);
-    if (!response.ok) {
+  static async searchStocks(token: string, query: string, fetchFn?: typeof fetch): Promise<Stock[]> {
+    const response = await this.fetch(`${API_BASE}/stocks/search?q=${encodeURIComponent(query)}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }, fetchFn);
+    if (!response.ok && response.status !== 401) {
       throw new Error('Failed to search stocks');
     }
     const result = await response.json();
     return result.results || [];
   }
 
-  static async getMyPortfolio(token: string): Promise<PortfolioSummary> {
-    const response = await fetch(`${API_BASE}/portfolio/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch authenticated portfolio');
-    }
-    
-    const portfolioData = await response.json();
-    
-    return portfolioData;
-  }
-
-  static async getMyRiskAnalysis(token: string): Promise<RiskAnalysis> {
-    const response = await fetch(`${API_BASE}/portfolio/me/risk-analysis`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch authenticated risk analysis');
-    }
-    
-    return response.json();
-  }
-
-  static async buyMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE}/auth/portfolio/buy`, {
+  static async buyStock(token: string, symbol: string, shares: number, fetchFn?: typeof fetch): Promise<any> {
+    const response = await this.fetch(`${API_BASE}/auth/portfolio/buy`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ symbol, shares }),
-    });
+    }, fetchFn);
     
-    if (!response.ok) {
-      throw new Error('Failed to buy stock with authentication');
+    if (!response.ok && response.status !== 401) {
+      throw new Error(`Failed to buy stock: ${response.status} ${response.statusText}`);
     }
     
-    return response.json();
+    return await response.json();
   }
 
-  static async sellMyStock(token: string, symbol: string, shares: number): Promise<Portfolio> {
-    const response = await fetch(`${API_BASE}/auth/portfolio/sell`, {
+  static async getMyPortfolio(token: string, fetchFn?: typeof fetch): Promise<any> {
+    const response = await this.fetch(`${API_BASE}/portfolio/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }, fetchFn);
+    
+    if (!response.ok && response.status !== 401) {
+      throw new Error('Failed to fetch portfolio');
+    }
+    
+    return await response.json();
+  }
+
+  static async getMyRiskAnalysis(token: string, fetchFn?: typeof fetch): Promise<any> {
+    const response = await this.fetch(`${API_BASE}/portfolio/me/risk-analysis`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }, fetchFn);
+    
+    if (!response.ok && response.status !== 401) {
+      throw new Error('Failed to fetch risk analysis');
+    }
+    
+    return await response.json();
+  }
+
+  static async sellMyStock(token: string, symbol: string, shares: number, fetchFn?: typeof fetch): Promise<Portfolio> {
+    const response = await this.fetch(`${API_BASE}/auth/portfolio/sell`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ symbol, shares }),
-    });
+    }, fetchFn);
     
-    if (!response.ok) {
-      throw new Error('Failed to sell stock with authentication');
+    if (!response.ok && response.status !== 401) {
+      throw new Error(`Failed to sell stock: ${response.status} ${response.statusText}`);
     }
     
     return response.json();
