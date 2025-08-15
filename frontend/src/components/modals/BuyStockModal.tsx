@@ -62,7 +62,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
     
     try {
       if (auth.isAuthenticated && auth.token) {
-        await CapitalCraftAPI.buyMyStock(auth.token, symbol.toUpperCase(), parseInt(shares));
+        await CapitalCraftAPI.buyStock(auth.token, symbol.toUpperCase(), parseInt(shares));
       } else {
         throw new Error('Please login to buy stocks');
       }

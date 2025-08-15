@@ -72,7 +72,7 @@ export class MarkMyNotificationAsReadUseCase {
   }
 
   // Private validation method - Following Single Responsibility
-  private validateInput(notificationId: string): Result<void> {
+  private validateInput(notificationId: string): NotificationUpdateResult<DomainNotification> {
     if (!notificationId || typeof notificationId !== 'string') {
       return {
         success: false,

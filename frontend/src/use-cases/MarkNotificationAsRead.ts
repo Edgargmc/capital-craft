@@ -2,15 +2,15 @@
 // Use case for marking notifications as read
 
 import { 
-    Notification,
+    Notification as DomainNotification,
     Result,
     NotificationError
   } from '../entities/Notification';
   
   // Port - Repository interface
   export interface INotificationUpdateRepository {
-    updateStatus(notificationId: string, status: 'read' | 'dismissed'): Promise<Result<Notification>>;
-    findById(notificationId: string): Promise<Result<Notification | null>>;
+    updateStatus(notificationId: string, status: 'read' | 'dismissed'): Promise<Result<DomainNotification>>;
+    findById(notificationId: string): Promise<Result<DomainNotification | null>>;
   }
   
   // Port - Logger interface (reused from FetchNotifications)
@@ -28,7 +28,7 @@ import {
   
   // Use Case Output
   export interface MarkAsReadResponse {
-    notification: Notification;
+    notification: DomainNotification;
     updatedAt: Date;
   }
   

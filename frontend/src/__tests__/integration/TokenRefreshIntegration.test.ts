@@ -127,9 +127,15 @@ import { ApiTokenRefreshService } from '../../infrastructure/auth/ApiTokenRefres
 /**
  * Mock localStorage for testing
  */
-const mockLocalStorage = {
+const mockLocalStorage: {
+  store: Record<string, string>;
+  getItem: jest.MockedFunction<(key: string) => string | null>;
+  setItem: jest.MockedFunction<(key: string, value: string) => void>;
+  removeItem: jest.MockedFunction<(key: string) => void>;
+  clear: jest.MockedFunction<() => void>;
+} = {
   store: {} as Record<string, string>,
-  getItem: jest.fn((key: string) => mockLocalStorage.store[key] || null),
+  getItem: jest.fn((key: string): string | null => mockLocalStorage.store[key] || null),
   setItem: jest.fn((key: string, value: string) => {
     mockLocalStorage.store[key] = value;
   }),
@@ -204,6 +210,11 @@ class IntegrationAuthContext {
     return true;
   }
 
+  async getToken(): Promise<string> {
+    const token = await this.ensureValidToken();
+    return token || '';
+  }
+
   logout(): void {
     this.tokenManager.clearTokens();
     this.logoutCallback();
@@ -229,7 +240,7 @@ describe('Token Refresh Integration Tests', () => {
     // Setup dependencies
     tokenStorage = new LocalStorageTokenStorage();
     api = new CapitalCraftAPI();
-    tokenRefreshService = new ApiTokenRefreshService(api);
+    tokenRefreshService = new ApiTokenRefreshService();
     tokenManager = new TokenManager(tokenStorage, tokenRefreshService);
     authContext = new IntegrationAuthContext(tokenManager);
     interceptor = new AuthHttpInterceptor(authContext);

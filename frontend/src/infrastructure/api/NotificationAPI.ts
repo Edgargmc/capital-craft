@@ -107,7 +107,7 @@ export class NotificationAPI implements
   }
 
   // Implement INotificationUpdateRepository
-  async findById(notificationId: string): Promise<Result<Notification | null>> {
+  async findById(notificationId: string): Promise<Result<DomainNotification | null>> {
     try {
       const url = `${this.baseUrl}/notifications/${notificationId}`;
       const response = await this.fetchWithRetry(url);

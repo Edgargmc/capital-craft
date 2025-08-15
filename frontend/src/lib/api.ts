@@ -287,7 +287,7 @@ export class CapitalCraftAPI {
       throw new Error('Failed to fetch risk analysis');
     }
     const result = await response.json();
-    return result.data; // Backend devuelve { success: true, data: {...} }
+    return result.data;
   }
 
   static async getLearningContent(trigger: string, fetchFn?: typeof fetch): Promise<LearningContent> {

@@ -115,7 +115,8 @@ export class FetchMyNotificationsUseCase {
         notificationList = {
           items: result.data,
           totalCount: result.data.length,
-          unreadCount: result.data.filter(n => !n.isRead).length
+          unreadCount: result.data.filter(n => !n.isRead).length,
+          userId: 'demo' // Default user for compatibility
         };
       } else if (result.data && typeof result.data === 'object' && 'items' in result.data) {
         // Backend returned NotificationList object (new format)

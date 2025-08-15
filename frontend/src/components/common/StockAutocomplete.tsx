@@ -76,7 +76,7 @@ class RealSearchStocksUseCase {
       // Import here to avoid circular dependencies
       const { CapitalCraftAPI } = await import('@/lib/api');
       
-      const results = await CapitalCraftAPI.searchStocks(query.trim(), limit);
+      const results = await CapitalCraftAPI.searchStocks("dummy-token", query.trim()); // TODO: Add proper token handling
       
       // Convert API Stock objects to StockSuggestion format
       return results.map(stock => ({

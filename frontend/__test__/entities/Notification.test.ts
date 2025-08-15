@@ -141,7 +141,7 @@ describe('NotificationListEntity', () => {
         deep_link: '/learn/1',
         trigger_type: 'educational_moment',
         status: 'pending',
-        created_at: '2025-08-05T00:45:11.372824',
+        createdAt: '2025-08-05T00:45:11.372824',
         sent_at: null,
         isRead: false
       },
@@ -152,7 +152,7 @@ describe('NotificationListEntity', () => {
         deep_link: '/portfolio',
         trigger_type: 'risk_change',
         status: 'read',
-        created_at: '2025-08-05T00:30:11.372824',
+        createdAt: '2025-08-05T00:30:11.372824',
         sent_at: '2025-08-05T00:31:00.000000',
         isRead: true
       }

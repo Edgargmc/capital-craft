@@ -51,8 +51,17 @@ export function createAuthContextAdapter(authContext: {
   logout: () => void;
 }): IAuthContext {
   return {
-    isAuthenticated: authContext.isAuthenticated,
     ensureValidToken: authContext.ensureValidToken,
+    refreshTokenIfNeeded: async () => {
+      // Try to ensure valid token, return true if successful
+      const token = await authContext.ensureValidToken();
+      return token !== null;
+    },
     logout: authContext.logout,
+    getToken: async () => {
+      // Get valid token or return empty string
+      const token = await authContext.ensureValidToken();
+      return token || '';
+    }
   };
 }

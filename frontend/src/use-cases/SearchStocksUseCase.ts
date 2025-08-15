@@ -21,6 +21,7 @@ export class RealSearchStocksUseCase {
   /**
    * Execute stock search using real API
    * 
+   * @param token - Authentication token
    * @param query - Search query (symbol or company name)
    * @param limit - Maximum number of results to return
    * @returns Promise<Stock[]> - Array of matching stocks
@@ -33,7 +34,7 @@ export class RealSearchStocksUseCase {
    * - Results include full Stock objects with current prices
    * - API handles symbol/name/sector matching on backend
    */
-  async execute(query: string, limit: number = 10): Promise<Stock[]> {
+  async execute(token: string, query: string, limit: number = 10): Promise<Stock[]> {
     // Input validation
     if (!query || !query.trim()) {
       throw new Error("Search query cannot be empty");
@@ -45,7 +46,7 @@ export class RealSearchStocksUseCase {
 
     try {
       // Call backend API
-      const results = await CapitalCraftAPI.searchStocks(query.trim(), limit);
+      const results = await CapitalCraftAPI.searchStocks(token, query.trim());
       
       return results;
     } catch (error) {

@@ -48,13 +48,26 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
       }
       
       if (auth.isAuthenticated && auth.token) {
-        const [summaryData, riskData] = await Promise.all([
-          CapitalCraftAPI.getMyPortfolio(auth.token),
-          CapitalCraftAPI.getMyRiskAnalysis(auth.token)
-        ]);
-        
-        setSummary(summaryData);
-        setRiskAnalysis(riskData);
+        try {
+          const [summaryData, riskData] = await Promise.all([
+            CapitalCraftAPI.getMyPortfolio(auth.token),
+            CapitalCraftAPI.getMyRiskAnalysis(auth.token)
+          ]);
+          
+          setSummary(summaryData);
+          setRiskAnalysis(riskData?.risk_analysis || null);
+        } catch (riskError) {
+          console.error('❌ Error fetching risk analysis:', riskError);
+          // Still try to get portfolio data alone
+          try {
+            const summaryData = await CapitalCraftAPI.getMyPortfolio(auth.token);
+            setSummary(summaryData);
+            setRiskAnalysis(null);
+          } catch (portfolioError) {
+            console.error('❌ Error fetching portfolio:', portfolioError);
+            throw portfolioError;
+          }
+        }
       } else {
         setSummary(null);
         setRiskAnalysis(null);
@@ -188,6 +201,17 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
                 
                 {/* Chart Section - Right Column (1/3 width) */}
                 <div className="lg:col-span-1 space-y-4">
+                  {riskAnalysis?.learning_trigger && (
+                    <div className="mb-6">
+                      <LearningAlert
+                        trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
+                        portfolioRisk={riskAnalysis.risk_level}
+                        volatilityScore={riskAnalysis.volatility_score}
+                        onDismiss={() => setRiskAnalysis(null)}
+                        onLearnMore={() => setShowLearningModal(true)} 
+                      />
+                    </div>
+                  )}
                   <PortfolioChart
                     cashBalance={summary.cash_balance}
                     totalPortfolioValue={summary.total_portfolio_value}
@@ -197,18 +221,6 @@ export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps)
                 </div>
               </div>
             ) : null}
-
-            {riskAnalysis?.learning_trigger && (
-              <div className="mb-6">
-                <LearningAlert
-                  trigger={riskAnalysis.learning_trigger as 'volatility_basics' | 'market_psychology' | 'diversification'}
-                  portfolioRisk={riskAnalysis.risk_level}
-                  volatilityScore={riskAnalysis.volatility_score}
-                  onDismiss={() => setRiskAnalysis(null)}
-                  onLearnMore={() => setShowLearningModal(true)} 
-                />
-              </div>
-            )}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (

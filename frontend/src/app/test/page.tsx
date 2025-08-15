@@ -258,7 +258,7 @@ export default function TestPage() {
 const NotificationBellTest: React.FC = () => {
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'pass' | 'fail'>('idle');
   const [clickCount, setClickCount] = useState(0);
-  const { notifications, unreadCount, fetchNotifications, isLoading, error } = useNotificationStore();
+  const { notifications, getUnreadCount, fetchNotifications, isLoading, error } = useNotificationStore();
 
   const runNotificationBellTest = async () => {
     setTestResult('testing');
@@ -272,6 +272,7 @@ const NotificationBellTest: React.FC = () => {
       
       // Test 2: Validate results
       const hasNotifications = Array.isArray(notifications);
+      const unreadCount = getUnreadCount();
       const hasValidUnreadCount = typeof unreadCount === 'number' && unreadCount >= 0;
       const noErrors = !error;
       
@@ -336,7 +337,7 @@ const NotificationBellTest: React.FC = () => {
 
         <div className="p-4 bg-red-50 rounded-lg">
           <div className="text-sm font-medium text-red-800 mb-2">Unread Count</div>
-          <div className="text-2xl font-bold text-red-900">{unreadCount}</div>
+          <div className="text-2xl font-bold text-red-900">{getUnreadCount()}</div>
           <div className="text-xs text-red-600 mt-1">Badge number</div>
         </div>
 
@@ -356,9 +357,9 @@ const NotificationBellTest: React.FC = () => {
             className="relative p-3 bg-white border-2 border-gray-300 rounded-full hover:bg-gray-100 transition-colors"
           >
             <span className="text-2xl">🔔</span>
-            {unreadCount > 0 && (
+            {getUnreadCount() > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {getUnreadCount() > 9 ? '9+' : getUnreadCount()}
               </span>
             )}
           </button>

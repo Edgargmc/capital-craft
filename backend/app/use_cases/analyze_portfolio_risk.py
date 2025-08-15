@@ -321,6 +321,8 @@ class AnalyzePortfolioRisk:
         Enhanced: More aggressive learning trigger determination
         Baby step: Generate more educational moments for better engagement
         """
+
+        print(f"Risk level: {risk_level}, volatility score: {volatility_score}")
         # HIGH risk portfolios
         if risk_level == "HIGH":
             if volatility_score > 1.5:
