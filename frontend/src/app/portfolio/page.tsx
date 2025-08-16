@@ -16,6 +16,7 @@ import PerformanceTimeline from '@/components/portfolio/PerformanceTimeline';
 import PortfolioHealthScore from '@/components/portfolio/PortfolioHealthScore';
 import TopPerformerBadge from '@/components/portfolio/TopPerformerBadge';
 import { LearningAlert } from '@/components/learning/LearningAlert';
+import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { PieChart } from 'lucide-react';
 
 /**
@@ -70,6 +71,13 @@ export default function PortfolioPage() {
     fetchPortfolioData();
   }, [auth.isAuthenticated, auth.token]);
 
+  const handleTradeSuccess = async () => {
+    await fetchPortfolioData();
+    if (auth.user?.id) {
+      // await fetchNotifications(auth.user.id);
+    }
+  };
+
   const renderContent = () => {
     switch (tab) {
       case 'portfolio':
@@ -112,7 +120,7 @@ export default function PortfolioPage() {
                       loading={loading}
                     />
                   </div>
-                  
+                   
                   {/* Holdings Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.values(portfolioSummary.holdings).map((holding) => (
@@ -173,7 +181,7 @@ export default function PortfolioPage() {
                   Start your investment journey by buying your first stock!
                 </p>
                 <button 
-                  onClick={() => {/* TODO: Implement buy modal */}}
+                  onClick={() => {/* Buy modal handled by AppLayout */}}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Buy Your First Stock
@@ -223,12 +231,17 @@ export default function PortfolioPage() {
         holdings: portfolioSummary?.holdings || {}
       }}
       headerLoading={loading}
-      onBuyClick={() => {/* TODO: Implement buy modal */}}
-      onSellClick={() => {/* TODO: Implement sell modal */}}
       activeTab={tab}
       setActiveTab={handleTabChange}
     >
       {renderContent()}
+      
+      <LearningContentModal 
+        isOpen={showLearningModal}
+        onClose={() => setShowLearningModal(false)}
+        trigger={riskAnalysis?.learning_trigger || ''}
+        userId={auth.user?.id || "demo"} 
+      />
     </AppLayout>
   );
 }

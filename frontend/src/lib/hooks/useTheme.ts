@@ -24,6 +24,16 @@ export const useTheme = () => {
     return themeUtils.transition[speed]();
   };
 
+  // Navigation utilities
+  const navigation = {
+    sidebar: () => themeUtils.navigation.sidebar(),
+    item: () => themeUtils.navigation.item(),
+    itemActive: () => themeUtils.navigation.itemActive(),
+    itemInactive: () => themeUtils.navigation.itemInactive(),
+    header: () => themeUtils.navigation.header(),
+    collapseButton: () => themeUtils.navigation.collapseButton()
+  };
+
   // Risk-specific badge mapping (for existing components)
   const riskBadge = (risk: 'HIGH' | 'MEDIUM' | 'LOW') => {
     const riskMap = {
@@ -44,6 +54,7 @@ export const useTheme = () => {
     button, 
     badge,
     transition,
+    navigation,
     riskBadge,
     
     // Utility functions

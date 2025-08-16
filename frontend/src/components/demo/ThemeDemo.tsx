@@ -17,6 +17,8 @@ import { StockAutocompleteDemo } from '@/components/demo/StockAutocompleteDemo';
 import { NotificationBellDemo } from '@/components/demo/NotificationBellDemo';
 import { LearningAlertDemo } from '@/components/demo/LearningAlertDemo';
 import { PortfolioHealthScoreDemo } from '@/components/demo/PortfolioHealthScoreDemo';
+import { SellStockModalDemo } from '@/components/demo/SellStockModalDemo';
+import { SidebarDemo } from '@/components/demo/SidebarDemo';
 // import { QuickStatsGrid, PortfolioStats } from '@/components/dashboard/QuickStatsGrid';
 
 export const ThemeDemo: React.FC = () => {
@@ -234,6 +236,30 @@ export const ThemeDemo: React.FC = () => {
         </div>
       </div>
 
+      {/* SellStockModal Demo */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800">SellStockModal Migration Test</h3>
+        <p className="text-sm text-gray-600">
+          Testing the complementary selling modal with portfolio holdings simulation and dual approach patterns:
+        </p>
+        
+        {/* Legacy Version */}
+        <div className="space-y-3">
+          <h4 className="text-md font-medium text-gray-700">🔄 Legacy SellStockModal</h4>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <SellStockModalDemo useThemeSystem={false} />
+          </div>
+        </div>
+        
+        {/* Theme Version */}
+        <div className="space-y-3">
+          <h4 className="text-md font-medium text-gray-700">🌟 Theme SellStockModal</h4>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <SellStockModalDemo useThemeSystem={true} />
+          </div>
+        </div>
+      </div>
+
       {/* StockAutocomplete Demo */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-800">StockAutocomplete Migration Test</h3>
@@ -326,6 +352,24 @@ export const ThemeDemo: React.FC = () => {
           <h4 className="text-md font-medium text-gray-700">🌟 Theme PortfolioHealthScore</h4>
           <div className="bg-gray-50 rounded-lg p-4">
             <PortfolioHealthScoreDemo useThemeSystem={true} />
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar Demo - Full Layout Component */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800">Sidebar Layout Migration Test</h3>
+        <p className="text-sm text-gray-600">
+          Testing complex layout component with navigation utilities, mobile responsiveness, and dual approach patterns. Features collapsible sidebar and navigation state management:
+        </p>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="text-blue-900 font-medium mb-2">🧭 Interactive Sidebar Demo</h4>
+          <p className="text-sm text-blue-800 mb-3">
+            This demo opens in a separate layout to test navigation, mobile menu, and theme switching:
+          </p>
+          <div className="bg-white rounded-lg p-4">
+            <SidebarDemo />
           </div>
         </div>
       </div>

@@ -33,7 +33,7 @@ interface StockAutocompleteProps {
   disabled?: boolean;
   /** Callback when selection is cleared */
   onClear?: () => void;
-  /** Whether to use the new theme system (dual approach) */
+  /** ✅ MIGRATED: Whether to use theme system (default: true) */
   useThemeSystem?: boolean;
 }
 
@@ -157,7 +157,7 @@ export function StockAutocomplete({
   loading = false,
   disabled = false,
   onClear,
-  useThemeSystem = false
+  useThemeSystem = true // ✅ MIGRATED: Default to theme system
 }: StockAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<StockSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);

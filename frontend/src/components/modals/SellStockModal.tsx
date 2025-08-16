@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, TrendingDown } from 'lucide-react';
 import { CapitalCraftAPI, Holding } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface SellStockModalProps {
   isOpen: boolean;
@@ -11,15 +12,17 @@ interface SellStockModalProps {
   onSuccess: () => void;
   userId: string;
   holdings: Record<string, Holding>;
+  useThemeSystem?: boolean; // ✅ MIGRATED: Default to theme system (true)
 }
 
-export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }: SellStockModalProps) {
+export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings, useThemeSystem = true }: SellStockModalProps) {
   const [selectedStock, setSelectedStock] = useState('');
   const [shares, setShares] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const auth = useAuth();
+  const theme = useTheme();
   const holding = selectedStock ? holdings[selectedStock] : null;
   const sellValue = holding && shares ? (holding.current_price || 0) * parseInt(shares || '0') : 0;
   const hasEnoughShares = holding && shares ? parseInt(shares) <= holding.shares : false;
@@ -61,11 +64,26 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
 
   const holdingsList = Object.values(holdings);
 
+  // Theme styles with dual approach
+  const modalContainerStyles = useThemeSystem
+    ? theme.combine("fixed inset-0 flex items-center justify-center z-50 bg-neutral-900/60")
+    : 'fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50 p-4';
+
+  const modalContentStyles = useThemeSystem
+    ? theme.combine(theme.card('base'), 'w-full max-w-md max-h-[90vh] flex flex-col')
+    : 'bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col';
+
   return (
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+    <div className={modalContainerStyles}>
+      <div className={modalContentStyles}>
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Sell Stock</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Sell Stock
+            {/* Debug indicator */}
+            <span className="ml-2 text-xs text-gray-400">
+              {useThemeSystem ? '🌟' : '🔄'}
+            </span>
+          </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
@@ -103,7 +121,10 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
                 </select>
               </div>
               {holding && (
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className={useThemeSystem
+                  ? theme.combine('rounded-lg p-4', 'bg-gray-50')
+                  : 'bg-gray-50 rounded-lg p-4'
+                }>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-900">{holding.symbol}</h3>
                     <span className="text-blue-600 font-semibold">
@@ -168,7 +189,10 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
               )}
 
               {holding && shares && (
-                <div className="bg-red-50 rounded-lg p-4">
+                <div className={useThemeSystem
+                  ? theme.combine('rounded-lg p-4', 'bg-red-50')
+                  : 'bg-red-50 rounded-lg p-4'
+                }>
                   <h4 className="font-medium text-gray-900 mb-3">Sale Summary</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -219,18 +243,27 @@ export function SellStockModal({ isOpen, onClose, onSuccess, userId, holdings }:
           <div className="flex-shrink-0 flex space-x-3 p-6 border-t border-gray-200">
             <button
               onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className={useThemeSystem 
+                ? theme.combine(theme.button('secondary'), 'flex-1 px-4 py-2')
+                : 'flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors'
+              }
             >
               Cancel
             </button>
             <button
               onClick={handleSell}
               disabled={!isValidSale || loading}
-              className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${
-                isValidSale && !loading
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
+              className={useThemeSystem
+                ? theme.combine(
+                    isValidSale && !loading ? theme.button('danger') : 'bg-gray-400 cursor-not-allowed text-white',
+                    'flex-1 px-4 py-2 font-medium'
+                  )
+                : `flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${
+                    isValidSale && !loading
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`
+              }
             >
               {loading ? 'Selling...' : 'Sell Stock'}
             </button>

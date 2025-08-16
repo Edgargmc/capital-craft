@@ -13,10 +13,10 @@ interface BuyStockModalProps {
   onSuccess: () => void;
   userId: string;
   availableCash: number;
-  useThemeSystem?: boolean; // Optional prop for dual approach
+  useThemeSystem?: boolean; // ✅ MIGRATED: Default to theme system (true)
 }
 
-export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCash, useThemeSystem = false }: BuyStockModalProps) {
+export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCash, useThemeSystem = true }: BuyStockModalProps) {
   const [symbol, setSymbol] = useState('');
   const [shares, setShares] = useState('');
   const [stockData, setStockData] = useState<Stock | null>(null);
@@ -26,7 +26,9 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   const [error, setError] = useState('');
 
   const auth = useAuth();
+  console.log('🔍 BuyStockModal: About to call useTheme(), useThemeSystem:', useThemeSystem);
   const theme = useTheme();
+  console.log('🔍 BuyStockModal: useTheme() successful, theme:', theme);
 
   useEffect(() => {
     const searchStock = async () => {
@@ -106,10 +108,12 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   };
 
   if (!isOpen) return null;
+  
+  console.log('🔍 BuyStockModal rendering, useThemeSystem:', useThemeSystem);
 
   // Theme styles with dual approach
   const modalContainerStyles = useThemeSystem
-    ? theme.combine('fixed inset-0 flex items-center justify-center z-50', 'bg-black/55')
+    ? theme.combine("fixed inset-0 flex items-center justify-center z-50 bg-neutral-900/60")
     : 'fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50';
 
   const modalContentStyles = useThemeSystem

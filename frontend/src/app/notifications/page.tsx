@@ -53,10 +53,7 @@ export default function NotificationsPage() {
         holdings: portfolioSummary?.holdings || {}
       }}
       headerLoading={loading}
-      onBuyClick={() => {/* TODO: Implement buy modal */}}
-      onSellClick={() => {/* TODO: Implement sell modal */}}
       activeTab="notifications"
-      setActiveTab={() => {}} // Sidebar handles all navigation
     >
       <NotificationsComponent />
     </AppLayout>

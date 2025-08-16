@@ -11,8 +11,6 @@ import PortfolioChart from './PortfolioChart';
 import PerformanceTimeline from './PerformanceTimeline';
 import PortfolioHealthScore from './PortfolioHealthScore';
 import TopPerformerBadge from './TopPerformerBadge';
-import { BuyStockModal } from '@/components/modals/BuyStockModal';
-import { SellStockModal } from '@/components/modals/SellStockModal';
 import { LearningAlert } from '@/components/learning/LearningAlert';
 import { LearningContentModal } from '@/components/modals/LearningContentModal';
 import { SettingsPage } from '@/components/settings/SettingsPage';
@@ -110,13 +108,14 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
     holdings: summary.holdings,
   } : null;
 
+  console.log('🐛 DEBUG: PortfolioDashboard render - error:', error, 'loading:', loading, 'summary:', !!summary);
+  
   if (error) {
+    console.log('📛 DEBUG: Rendering ERROR case - callbacks should work here');
     return (
       <AppLayout
         headerData={null}
         headerLoading={false}
-        onBuyClick={() => setShowBuyModal(true)}
-        onSellClick={() => setShowSellModal(true)}
         userId={userId} 
       >
         <div className="flex items-center justify-center h-full">
@@ -146,8 +145,6 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
           holdings: summary?.holdings || {}
         }}
         headerLoading={loading}
-        onBuyClick={() => setShowBuyModal(true)}
-        onSellClick={() => setShowSellModal(true)}
         userId={userId}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -160,7 +157,6 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
               <p className="text-gray-600">Here&apos;s how your portfolio is performing today.</p>
             </div>
 
-            {/* Beautiful Metric Cards */}
             {summary && (
               <MetricCards
                 cashBalance={summary.cash_balance}
@@ -172,12 +168,9 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
               />
             )}
 
-            {/* Holdings and Chart */}
             {summary ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Section - Holdings and Educational Components (2/3 width) */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Educational Components Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <PortfolioHealthScore
                       holdings={summary.holdings}
@@ -193,7 +186,6 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
                     />
                   </div>
                   
-                  {/* Holdings Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {Object.values(summary.holdings).map((holding) => (
                       <HoldingCard
@@ -210,7 +202,6 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
                   </div>
                 </div>
                 
-                {/* Chart Section - Right Column (1/3 width) */}
                 <div className="lg:col-span-1 space-y-4">
                   {riskAnalysis?.learning_trigger && (
                     <div className="mb-6">
@@ -277,22 +268,6 @@ export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }
           <NotificationsPage />
         ) : null}
       </AppLayout>
-
-      <BuyStockModal
-        isOpen={showBuyModal}
-        onClose={() => setShowBuyModal(false)}
-        onSuccess={handleTradeSuccess}
-        userId={userId}
-        availableCash={summary?.cash_balance || 0}
-      />
-
-      <SellStockModal
-        isOpen={showSellModal}
-        onClose={() => setShowSellModal(false)}
-        onSuccess={handleTradeSuccess}
-        userId={userId}
-        holdings={summary?.holdings || {}}
-      />
 
       <LearningContentModal 
         isOpen={showLearningModal}

@@ -18,10 +18,12 @@ import {
 } from 'lucide-react';
 
 import { useNavigation } from '@/hooks/useNavigation';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  useThemeSystem?: boolean; // ✅ MIGRATED: Default to theme system (true)
 }
 
 const navigation = [
@@ -39,10 +41,11 @@ const secondaryNavigation = [
   { id: 'feedback', name: 'Give Feedback', icon: MessageSquare },
 ];
 
-export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, useThemeSystem = true }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const nav = useNavigation();
+  const theme = useTheme();
 
   const handleTabChange = (tabId: string, href?: string) => {
     // Navigate to dedicated pages for each section
@@ -80,16 +83,33 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     }
   };
 
-  const MobileMenuButton = () => (
-    <button
-      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      className={`fixed top-4 left-4 z-50 p-2 rounded-lg bg-gray-900 text-white shadow-lg md:hidden transition-transform ${
-        mobileMenuOpen ? 'rotate-90' : ''
-      }`}
-    >
-      {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-    </button>
-  );
+  const MobileMenuButton = () => {
+    const buttonStyles = useThemeSystem
+      ? theme.combine(
+          'fixed top-4 left-4 z-50 p-2 rounded-lg md:hidden',
+          'bg-gray-900 text-white shadow-lg',
+          theme.transition('base'),
+          mobileMenuOpen ? 'rotate-90' : ''
+        )
+      : `fixed top-4 left-4 z-50 p-2 rounded-lg bg-gray-900 text-white shadow-lg md:hidden transition-transform ${
+          mobileMenuOpen ? 'rotate-90' : ''
+        }`;
+
+    return (
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className={buttonStyles}
+      >
+        {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {/* Debug indicator */}
+        {process.env.NODE_ENV === 'development' && (
+          <span className="absolute -top-2 -right-2 text-[8px] bg-blue-500 text-white rounded px-1">
+            {useThemeSystem ? '🌟' : '🔄'}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   const MobileOverlay = () => (
     mobileMenuOpen ? (
@@ -102,22 +122,42 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   );
 
 
-  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={`bg-gray-900 text-white flex flex-col h-full ${
-      isMobile ? 'w-80' : collapsed ? 'w-16' : 'w-64'
-    } transition-all duration-300`}>
-      <div className="p-4 border-b border-gray-700">
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+    const sidebarStyles = useThemeSystem
+      ? theme.combine(
+          theme.navigation.sidebar(),
+          isMobile ? 'w-80' : collapsed ? 'w-16' : 'w-64'
+        )
+      : `bg-gray-900 text-white flex flex-col h-full ${
+          isMobile ? 'w-80' : collapsed ? 'w-16' : 'w-64'
+        } transition-all duration-300`;
+
+    return (
+    <div className={sidebarStyles}>
+      <div className={useThemeSystem
+        ? theme.combine(theme.navigation.header())
+        : 'p-4 border-b border-gray-700'
+      }>
         <div className="flex items-center justify-between">
           {(!collapsed || isMobile) && (
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-8 w-8 text-green-400" />
               <span className="text-xl font-bold">Capital Craft</span>
+              {/* Debug indicator */}
+              {process.env.NODE_ENV === 'development' && (
+                <span className="text-[8px] bg-blue-500 text-white rounded px-1">
+                  {useThemeSystem ? '🌟' : '🔄'}
+                </span>
+              )}
             </div>
           )}
           {!isMobile && (
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="p-1 rounded hover:bg-gray-800 transition-colors"
+              className={useThemeSystem
+                ? theme.combine(theme.navigation.collapseButton())
+                : 'p-1 rounded hover:bg-gray-800 transition-colors'
+              }
             >
               <ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
             </button>
@@ -134,11 +174,19 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
+              className={useThemeSystem
+                ? theme.combine(
+                    theme.navigation.item(),
+                    isActive 
+                      ? theme.navigation.itemActive()
+                      : theme.navigation.itemInactive()
+                  )
+                : `w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+              }
             >
               <Icon className="h-5 w-5" />
               {(!collapsed || isMobile) && (
@@ -158,11 +206,19 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-              }`}
+              className={useThemeSystem
+                ? theme.combine(
+                    theme.navigation.item(),
+                    isActive 
+                      ? theme.navigation.itemActive()
+                      : theme.navigation.itemInactive()
+                  )
+                : `w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+              }
             >
               <Icon className="h-5 w-5" />
               {(!collapsed || isMobile) && (
@@ -185,7 +241,8 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <>

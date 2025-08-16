@@ -93,6 +93,16 @@ export const themeUtils = {
     fast: () => 'transition-all duration-150 ease-out',
     base: () => 'transition-all duration-300 ease-out', 
     slow: () => 'transition-all duration-500 ease-out'
+  },
+
+  // Navigation utilities
+  navigation: {
+    sidebar: () => 'bg-gray-900 text-white flex flex-col h-full transition-all duration-300',
+    item: () => 'w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors',
+    itemActive: () => 'bg-blue-600 text-white',
+    itemInactive: () => 'text-gray-300 hover:bg-gray-800 hover:text-white',
+    header: () => 'p-4 border-b border-gray-700',
+    collapseButton: () => 'p-1 rounded hover:bg-gray-800 transition-colors'
   }
 };
 
