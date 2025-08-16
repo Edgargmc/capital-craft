@@ -45,26 +45,36 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const nav = useNavigation();
 
   const handleTabChange = (tabId: string, href?: string) => {
-    if (href) {
-      // This should not happen anymore since we removed href from navigation items
-      nav.legacyPush(href);
-    } else {
-      // Handle specific navigation cases with centralized routing
-      if (tabId === 'dashboard') {
+    // Navigate to dedicated pages for each section
+    switch (tabId) {
+      case 'dashboard':
         nav.goToDashboard();
-      } else if (tabId === 'portfolio') {
-        nav.goToPortfolio(); // Navigate to /portfolio page
-      } else if (tabId === 'settings' || tabId === 'notifications') {
-        // For settings and notifications, use smooth internal navigation
-        // Update URL without page reload for better UX
-        const newUrl = tabId === 'settings' ? '/?tab=settings' : '/?tab=notifications';
-        window.history.pushState({}, '', newUrl);
-        onTabChange(tabId); // This will update the internal state smoothly
-      } else {
-        // For other tabs, use the existing tab change mechanism
-        onTabChange(tabId);
-      }
+        break;
+      case 'portfolio':
+        nav.goToPortfolio();
+        break;
+      case 'stock-search':
+        nav.legacyPush('/stock-search');
+        break;
+      case 'learn':
+        nav.legacyPush('/learn');
+        break;
+      case 'achievements':
+        nav.legacyPush('/achievements');
+        break;
+      case 'analytics':
+        nav.legacyPush('/analytics');
+        break;
+      case 'settings':
+        nav.legacyPush('/settings');
+        break;
+      case 'notifications':
+        nav.legacyPush('/notifications');
+        break;
+      default:
+        nav.legacyPush('/');
     }
+    
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
