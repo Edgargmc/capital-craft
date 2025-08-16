@@ -48,7 +48,6 @@ export function Sidebar({ activeTab, onTabChange, useThemeSystem = true }: Sideb
   const theme = useTheme();
 
   const handleTabChange = (tabId: string, href?: string) => {
-    // Navigate to dedicated pages for each section
     switch (tabId) {
       case 'dashboard':
         nav.goToDashboard();
@@ -142,7 +141,12 @@ export function Sidebar({ activeTab, onTabChange, useThemeSystem = true }: Sideb
           {(!collapsed || isMobile) && (
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-8 w-8 text-green-400" />
-              <span className="text-xl font-bold">Capital Craft</span>
+              <button 
+                onClick={() => handleTabChange('home')}
+                className="text-xl font-bold hover:text-green-300 transition-colors"
+              >
+                Capital Craft
+              </button>
               {/* Debug indicator */}
               {process.env.NODE_ENV === 'development' && (
                 <span className="text-[8px] bg-blue-500 text-white rounded px-1">
