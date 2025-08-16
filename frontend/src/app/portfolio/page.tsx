@@ -1,10 +1,6 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { PortfolioDashboard } from '@/components/portfolio/PortfolioDashboard';
-import { WelcomeCard } from '@/components/dashboard/WelcomeCard';
-import { QuickStatsGrid, PortfolioStats } from '@/components/dashboard/QuickStatsGrid';
-import { LearningProgress, LearningProgressData } from '@/components/dashboard/LearningProgress';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { NotificationsPage } from '@/components/notifications/NotificationsPage';
 import { AppLayout } from '@/components/layout/AppLayout';
