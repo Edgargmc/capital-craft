@@ -21,6 +21,7 @@ import {
   PieChart,
   AlertCircle
 } from 'lucide-react';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 /**
  * Portfolio Statistics Interface
@@ -42,6 +43,7 @@ export interface QuickStatsGridProps {
   stats: PortfolioStats;
   loading?: boolean;
   currency?: string;
+  useThemeSystem?: boolean; // INCREMENTAL: Optional theme system support
 }
 
 /**
@@ -58,6 +60,7 @@ interface StatCardProps {
   };
   loading?: boolean;
   variant?: 'default' | 'success' | 'warning' | 'danger';
+  useThemeSystem?: boolean; // INCREMENTAL: Optional theme system support
 }
 
 /**
@@ -71,11 +74,14 @@ function StatCard({
   icon, 
   change, 
   loading = false,
-  variant = 'default' 
+  variant = 'default',
+  useThemeSystem = false // INCREMENTAL: Default to legacy for backward compatibility
 }: StatCardProps) {
   
-  // 🎨 Business Logic: Determine card styling based on variant
-  const getVariantStyles = () => {
+  const theme = useTheme();
+  
+  // 🎨 LEGACY APPROACH: Original hardcoded variant styles
+  const getLegacyVariantStyles = () => {
     const variants = {
       default: 'border-gray-200 bg-white',
       success: 'border-green-200 bg-green-50',
@@ -95,9 +101,29 @@ function StatCard({
     return colors[variant];
   };
 
+  // 🌟 NEW THEME APPROACH: Using theme system
+  const getThemeVariantStyles = () => {
+    const variants = {
+      default: theme.card('base'),
+      success: theme.combine(theme.card('base'), 'border-green-200 bg-green-50'),
+      warning: theme.combine(theme.card('base'), 'border-yellow-200 bg-yellow-50'), 
+      danger: theme.combine(theme.card('base'), 'border-red-200 bg-red-50')
+    };
+    return variants[variant];
+  };
+
+  // 🎯 DUAL APPROACH: Choose styling method based on useThemeSystem prop
+  const getVariantStyles = () => {
+    return useThemeSystem ? getThemeVariantStyles() : getLegacyVariantStyles();
+  };
+
   if (loading) {
+    const loadingCardStyles = useThemeSystem 
+      ? theme.combine(theme.card('base'), 'p-6 animate-pulse')
+      : 'border border-gray-200 rounded-xl p-6 bg-white animate-pulse';
+      
     return (
-      <div className="border border-gray-200 rounded-xl p-6 bg-white animate-pulse">
+      <div className={loadingCardStyles}>
         <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
         <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
         <div className="h-3 bg-gray-200 rounded w-1/3"></div>
@@ -105,8 +131,12 @@ function StatCard({
     );
   }
 
+  const cardStyles = useThemeSystem
+    ? theme.combine(theme.card('interactive'), 'p-6', getVariantStyles())
+    : `border rounded-xl p-6 transition-all duration-200 hover:shadow-md ${getVariantStyles()}`;
+
   return (
-    <div className={`border rounded-xl p-6 transition-all duration-200 hover:shadow-md ${getVariantStyles()}`}>
+    <div className={cardStyles}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-600">{title}</h3>
         <div className={`p-2 rounded-lg bg-gray-100 ${getIconColor()}`}>
@@ -146,7 +176,8 @@ function StatCard({
 export function QuickStatsGrid({ 
   stats, 
   loading = false, 
-  currency = '$' 
+  currency = '$',
+  useThemeSystem = false // INCREMENTAL: Default to legacy for backward compatibility
 }: QuickStatsGridProps) {
   
   // 🔧 Business Logic: Format currency values
@@ -243,6 +274,7 @@ export function QuickStatsGrid({
           change={card.change}
           variant={card.variant}
           loading={loading}
+          useThemeSystem={useThemeSystem} // INCREMENTAL: Pass through theme system flag
         />
       ))}
     </div>

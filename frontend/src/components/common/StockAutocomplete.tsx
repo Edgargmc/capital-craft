@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { Search, ChevronDown, X } from 'lucide-react';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 /**
  * Stock suggestion interface for autocomplete results
@@ -32,6 +33,8 @@ interface StockAutocompleteProps {
   disabled?: boolean;
   /** Callback when selection is cleared */
   onClear?: () => void;
+  /** Whether to use the new theme system (dual approach) */
+  useThemeSystem?: boolean;
 }
 
 /**
@@ -153,7 +156,8 @@ export function StockAutocomplete({
   placeholder = 'Search stocks...',
   loading = false,
   disabled = false,
-  onClear
+  onClear,
+  useThemeSystem = false
 }: StockAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<StockSuggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -164,6 +168,7 @@ export function StockAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchUseCase = useRef(new RealSearchStocksUseCase());
+  const theme = useTheme();
 
   /**
    * Search for stock suggestions with debouncing
@@ -293,16 +298,56 @@ export function StockAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Theme styles with dual approach
+  const inputContainerStyles = useThemeSystem
+    ? theme.combine('w-full pl-10 pr-4 py-2 border rounded-lg bg-white flex items-center', 'border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500')
+    : 'w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white flex items-center';
+
+  const inputFieldStyles = useThemeSystem
+    ? theme.combine('w-full pl-10 pr-10 py-2 border rounded-lg text-gray-900', 
+        disabled 
+          ? 'bg-gray-50 cursor-not-allowed border-gray-300' 
+          : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500')
+    : `w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 ${disabled ? 'bg-gray-50 cursor-not-allowed' : ''}`;
+
+  const chipStyles = useThemeSystem
+    ? theme.combine(theme.badge('neutral'), 'inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium')
+    : 'inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium';
+
+  const dropdownStyles = useThemeSystem
+    ? theme.combine(theme.card('base'), 'absolute z-50 w-full mt-1 max-h-60 overflow-y-auto shadow-lg')
+    : 'absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto';
+
+  const getDropdownItemStyles = (index: number) => {
+    if (useThemeSystem) {
+      return theme.combine(
+        'px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0',
+        index === selectedIndex 
+          ? 'bg-blue-50 border-blue-200' 
+          : 'hover:bg-gray-50'
+      );
+    }
+    return `px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
+      index === selectedIndex ? 'bg-blue-50 border-blue-200' : ''
+    }`;
+  };
+
   return (
     <div className="relative">
+      {/* Debug indicator */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute -top-6 right-0 text-xs text-gray-400 z-10">
+          {useThemeSystem ? '🌟' : '🔄'}
+        </div>
+      )}
       {/* Input Field with Chip Inside */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-900" />
         
         {/* Selected Stock Chip - Inside Input */}
         {selectedStock ? (
-          <div className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white flex items-center">
-            <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+          <div className={inputContainerStyles}>
+            <div className={chipStyles}>
               <span>{selectedStock.symbol}</span>
               <button
                 onClick={handleClearStock}
@@ -322,7 +367,7 @@ export function StockAutocomplete({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 disabled:bg-gray-50 disabled:cursor-not-allowed"
+            className={inputFieldStyles}
             aria-label="Stock symbol search"
             aria-haspopup="listbox"
             aria-activedescendant={
@@ -348,7 +393,7 @@ export function StockAutocomplete({
       {showDropdown && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className={dropdownStyles}
           role="listbox"
           aria-label="Stock suggestions"
         >
@@ -356,9 +401,7 @@ export function StockAutocomplete({
             <div
               key={`${stock.symbol}-${index}`}
               id={`stock-option-${index}`}
-              className={`px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                index === selectedIndex ? 'bg-blue-50 border-blue-200' : ''
-              }`}
+              className={getDropdownItemStyles(index)}
               onClick={() => handleStockSelect(stock)}
               role="option"
               aria-selected={index === selectedIndex}
@@ -385,7 +428,7 @@ export function StockAutocomplete({
 
       {/* No Results Message */}
       {showDropdown && suggestions.length === 0 && value.length > 0 && !searchLoading && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
+        <div className={dropdownStyles}>
           <div className="px-4 py-3 text-sm text-gray-500 text-center">
             No stocks found for &quot;{value}&quot;
           </div>

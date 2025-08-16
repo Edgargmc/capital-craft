@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { CapitalCraftAPI, Stock } from '@/lib/api';
 import { StockAutocomplete } from '@/components/common/StockAutocomplete';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface BuyStockModalProps {
   isOpen: boolean;
@@ -12,9 +13,10 @@ interface BuyStockModalProps {
   onSuccess: () => void;
   userId: string;
   availableCash: number;
+  useThemeSystem?: boolean; // Optional prop for dual approach
 }
 
-export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCash }: BuyStockModalProps) {
+export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCash, useThemeSystem = false }: BuyStockModalProps) {
   const [symbol, setSymbol] = useState('');
   const [shares, setShares] = useState('');
   const [stockData, setStockData] = useState<Stock | null>(null);
@@ -24,6 +26,7 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
   const [error, setError] = useState('');
 
   const auth = useAuth();
+  const theme = useTheme();
 
   useEffect(() => {
     const searchStock = async () => {
@@ -104,12 +107,27 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
 
   if (!isOpen) return null;
 
+  // Theme styles with dual approach
+  const modalContainerStyles = useThemeSystem
+    ? theme.combine('fixed inset-0 flex items-center justify-center z-50', 'bg-black/55')
+    : 'fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50';
+
+  const modalContentStyles = useThemeSystem
+    ? theme.combine(theme.card('base'), 'w-full max-w-md mx-4')
+    : 'bg-white rounded-lg w-full max-w-md mx-4';
+
   return (
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.55)] flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-md mx-4">
+    <div className={modalContainerStyles}>
+      <div className={modalContentStyles}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Buy Stock</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Buy Stock
+            {/* Debug indicator */}
+            <span className="ml-2 text-xs text-gray-400">
+              {useThemeSystem ? '🌟' : '🔄'}
+            </span>
+          </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600"
@@ -130,11 +148,15 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
               onClear={handleClearStock}
               placeholder="Search AAPL, Microsoft, Tesla..."
               loading={searching}
+              useThemeSystem={useThemeSystem}
             />
           </div>
 
           {(stockData || selectedStock) && (
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className={useThemeSystem 
+              ? theme.combine('rounded-lg p-4', 'bg-gray-50')
+              : 'bg-gray-50 rounded-lg p-4'
+            }>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900">
                   {stockData?.symbol || selectedStock?.symbol || ''}
@@ -184,7 +206,10 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
           </div>
 
           {stockData && shares && (
-            <div className="bg-blue-50 rounded-lg p-4">
+            <div className={useThemeSystem
+              ? theme.combine('rounded-lg p-4', 'bg-blue-50')
+              : 'bg-blue-50 rounded-lg p-4'
+            }>
               <h4 className="font-medium text-gray-900 mb-3">Order Summary</h4>
 
               <div className="space-y-2 text-sm">
@@ -229,18 +254,27 @@ export function BuyStockModal({ isOpen, onClose, onSuccess, userId, availableCas
         <div className="flex space-x-3 p-6 border-t border-gray-200">
           <button
             onClick={handleClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className={useThemeSystem 
+              ? theme.combine(theme.button('secondary'), 'flex-1 px-4 py-2')
+              : 'flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors'
+            }
           >
             Cancel
           </button>
           <button
             onClick={handleBuy}
             disabled={!isValidPurchase || loading}
-            className={`flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${
-              isValidPurchase && !loading
-                ? 'bg-green-600 hover:bg-green-700'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+            className={useThemeSystem
+              ? theme.combine(
+                  isValidPurchase && !loading ? theme.button('success') : 'bg-gray-400 cursor-not-allowed text-white',
+                  'flex-1 px-4 py-2 font-medium'
+                )
+              : `flex-1 px-4 py-2 rounded-lg text-white font-medium transition-colors ${
+                  isValidPurchase && !loading
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`
+            }
           >
             {loading ? 'Buying...' : 'Buy Stock'}
           </button>

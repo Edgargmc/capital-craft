@@ -1,45 +1,59 @@
 /**
- * Theme Hook - Clean Architecture: Application Layer
- * Centralized theme management for consistent UI
+ * Theme Hook - INCREMENTAL APPROACH
+ * Clean Architecture: Application Layer
+ * Provides safe theme utilities that don't break existing styles
  */
 
-import { components, getLearningTheme, transitions } from '../theme';
+import { tokens, themeUtils, cn, buildComponent } from '../theme';
 
 export const useTheme = () => {
-  const getCardStyles = (variant: 'base' | 'interactive' | 'elevated' = 'base') => {
-    return components.card[variant];
+  // Safe component builders that can be mixed with existing classes
+  const card = (variant: 'base' | 'hover' | 'interactive' = 'base') => {
+    return themeUtils.card[variant]();
   };
 
-  const getButtonStyles = (variant: 'primary' | 'secondary' | 'ghost' = 'primary') => {
-    return components.button[variant];
+  const button = (variant: 'primary' | 'secondary' | 'danger' | 'success' = 'primary') => {
+    return themeUtils.button[variant]();
   };
 
-  const getBadgeStyles = (variant: 'high' | 'medium' | 'low' | 'neutral' = 'neutral') => {
-    return components.badge[variant];
+  const badge = (variant: 'success' | 'warning' | 'error' | 'neutral' = 'neutral') => {
+    return themeUtils.badge[variant]();
   };
 
-  const getRiskBadgeVariant = (risk: 'HIGH' | 'MEDIUM' | 'LOW') => {
-    const variants = {
-      'HIGH': 'high',
-      'MEDIUM': 'medium', 
-      'LOW': 'low'
+  const transition = (speed: 'fast' | 'base' | 'slow' = 'base') => {
+    return themeUtils.transition[speed]();
+  };
+
+  // Risk-specific badge mapping (for existing components)
+  const riskBadge = (risk: 'HIGH' | 'MEDIUM' | 'LOW') => {
+    const riskMap = {
+      'HIGH': 'error',
+      'MEDIUM': 'warning',
+      'LOW': 'success'
     } as const;
-    return getBadgeStyles(variants[risk]);
+    return badge(riskMap[risk]);
   };
 
-  const getTransition = (speed: 'fast' | 'normal' | 'slow' | 'slowest' = 'normal') => {
-    return transitions[speed];
-  };
+  // Utility functions
+  const combine = cn;
+  const build = buildComponent;
 
   return {
-    card: getCardStyles,
-    button: getButtonStyles,
-    badge: getBadgeStyles,
-    riskBadge: getRiskBadgeVariant,
-    transition: getTransition,
-    learningTheme: getLearningTheme
+    // Component builders
+    card,
+    button, 
+    badge,
+    transition,
+    riskBadge,
+    
+    // Utility functions
+    combine,
+    build,
+    
+    // Direct token access
+    tokens
   };
 };
 
-// Re-export theme components for direct access
-export { components, getLearningTheme, transitions } from '../theme';
+// Re-export utilities for direct use
+export { tokens, themeUtils, cn, buildComponent } from '../theme';

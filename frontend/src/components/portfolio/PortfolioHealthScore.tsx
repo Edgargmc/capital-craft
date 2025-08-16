@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, HelpCircle } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTheme } from '@/lib/hooks/useTheme';
 
 interface PortfolioHealthScoreProps {
   holdings: Record<string, any>;
@@ -9,6 +10,7 @@ interface PortfolioHealthScoreProps {
   totalPnl: number;
   investedAmount: number;
   loading?: boolean;
+  useThemeSystem?: boolean; // ✅ MIGRATED: Default to theme system (true)
 }
 
 interface HealthScoreData {
@@ -103,10 +105,12 @@ const PortfolioHealthScore: React.FC<PortfolioHealthScoreProps> = ({
   totalPortfolioValue,
   totalPnl,
   investedAmount,
-  loading = false
+  loading = false,
+  useThemeSystem = true // ✅ MIGRATED: Default to theme system
 }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [healthData, setHealthData] = useState<HealthScoreData | null>(null);
+  const theme = useTheme();
 
   const calculateHealthScore = (): HealthScoreData => {
     const holdingsArray = Object.values(holdings);
@@ -197,9 +201,21 @@ const PortfolioHealthScore: React.FC<PortfolioHealthScoreProps> = ({
     }
   }, [holdings, cashBalance, totalPortfolioValue, totalPnl, investedAmount, loading]);
 
+  // Theme styles - always use theme system
+  const loadingCardStyles = theme.combine(theme.card('base'), 'p-6');
+
+  const mainCardStyles = theme.combine(theme.card('interactive'), 'p-6 group');
+
+  const getHealthLevelBadgeStyles = (level: string) => {
+    const variant = level === 'Excellent' ? 'success' : 
+                   level === 'Good' ? 'success' : 
+                   level === 'Fair' ? 'warning' : 'error';
+    return theme.combine(theme.badge(variant), 'text-xs font-medium px-2 py-1 rounded-full');
+  };
+
   if (loading || !healthData) {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className={loadingCardStyles}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-gray-400" />
@@ -218,7 +234,13 @@ const PortfolioHealthScore: React.FC<PortfolioHealthScoreProps> = ({
   const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
+    <div className={mainCardStyles}>
+      {/* Debug indicator */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute -top-8 right-0 text-xs text-gray-400 z-20">
+          {useThemeSystem ? '🌟' : '🔄'}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-indigo-600" />
@@ -227,7 +249,7 @@ const PortfolioHealthScore: React.FC<PortfolioHealthScoreProps> = ({
             <HelpCircle className="w-4 h-4 text-gray-400 hover:text-indigo-600 transition-colors" />
           </EducationalTooltip>
         </div>
-        <span className={`text-xs font-medium px-2 py-1 rounded-full bg-gray-100 ${healthData.color}`}>
+        <span className={getHealthLevelBadgeStyles(healthData.level)}>
           {healthData.level}
         </span>
       </div>
