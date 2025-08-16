@@ -20,23 +20,34 @@ import { NotificationsPage } from '@/components/notifications/NotificationsPage'
 import { RiskAnalysis } from '@/lib/api';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchParams } from 'next/navigation';
 
 interface PortfolioDashboardProps {
   userId?: string;
+  initialTab?: string;
 }
 
-export function PortfolioDashboard({ userId = "demo" }: PortfolioDashboardProps) {
+export function PortfolioDashboard({ userId = "demo", initialTab = "portfolio" }: PortfolioDashboardProps) {
   const [summary, setSummary] = useState<PortfolioSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [riskAnalysis, setRiskAnalysis] = useState<RiskAnalysis | null>(null);
   const [showLearningModal, setShowLearningModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('portfolio');
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   const auth = useAuth();
   const { fetchNotifications } = useNotificationStore();
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showSellModal, setShowSellModal] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Sync activeTab with URL changes for smooth navigation
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') || 'portfolio';
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams, activeTab]);
 
   const fetchData = async () => {
     try {

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   PieChart, 
@@ -18,15 +17,17 @@ import {
   Bell
 } from 'lucide-react';
 
+import { useNavigation } from '@/hooks/useNavigation';
+
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
 const navigation = [
-  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { id: 'portfolio', name: 'Portfolio', icon: PieChart, href: '/' },
-  { id: 'search', name: 'Stock Search', icon: Search },
+  { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
+  { id: 'portfolio', name: 'Portfolio', icon: PieChart },
+  { id: 'stock-search', name: 'Stock Search', icon: Search },
   { id: 'learn', name: 'Learn', icon: BookOpen },
   { id: 'achievements', name: 'Achievements', icon: Trophy },
   { id: 'analytics', name: 'Analytics', icon: BarChart3 },
@@ -41,13 +42,28 @@ const secondaryNavigation = [
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const router = useRouter();
+  const nav = useNavigation();
 
   const handleTabChange = (tabId: string, href?: string) => {
     if (href) {
-      router.push(href);
+      // This should not happen anymore since we removed href from navigation items
+      nav.legacyPush(href);
     } else {
-      onTabChange(tabId);
+      // Handle specific navigation cases with centralized routing
+      if (tabId === 'dashboard') {
+        nav.goToDashboard();
+      } else if (tabId === 'portfolio') {
+        nav.goToPortfolio(); // Navigate to /portfolio page
+      } else if (tabId === 'settings' || tabId === 'notifications') {
+        // For settings and notifications, use smooth internal navigation
+        // Update URL without page reload for better UX
+        const newUrl = tabId === 'settings' ? '/?tab=settings' : '/?tab=notifications';
+        window.history.pushState({}, '', newUrl);
+        onTabChange(tabId); // This will update the internal state smoothly
+      } else {
+        // For other tabs, use the existing tab change mechanism
+        onTabChange(tabId);
+      }
     }
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
@@ -107,7 +123,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           return (
             <button
               key={item.id}
-              onClick={() => handleTabChange(item.id, item.href)}
+              onClick={() => handleTabChange(item.id)}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                 isActive 
                   ? 'bg-blue-600 text-white' 

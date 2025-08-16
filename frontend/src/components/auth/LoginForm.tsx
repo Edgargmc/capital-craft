@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createLoginUserUseCase } from '@/use-cases/auth/loginUser';
-import { CapitalCraftAPI } from '@/lib/api';
+import { useNavigation } from '@/hooks/useNavigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { CapitalCraftAPI } from '@/lib/api';
 
 interface LoginFormData {
   email: string;
@@ -12,17 +11,16 @@ interface LoginFormData {
 }
 
 export function LoginForm() {
-  const router = useRouter();
-  const auth = useAuth();
-
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loginUserUseCase = createLoginUserUseCase();
+  // NEW: Use centralized navigation
+  const nav = useNavigation();
+  const auth = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,15 +34,19 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    setIsLoading(true);
 
     try {
-      const authResponse = await loginUserUseCase.execute(formData);
+      const authResponse = await CapitalCraftAPI.login({
+        email: formData.email,
+        password: formData.password
+      });
 
       auth.setAuth(authResponse.user, authResponse.access_token);
 
-      router.push('/');
+      // NEW: Use centralized navigation instead of router.push('/')
+      await nav.goToHome();
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

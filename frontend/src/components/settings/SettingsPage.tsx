@@ -1,16 +1,18 @@
 'use client';
 
+import { useNavigation } from '@/hooks/useNavigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { User, LogOut, Mail, Calendar } from 'lucide-react';
 
 export function SettingsPage() {
+  // NEW: Use centralized navigation
+  const nav = useNavigation();
   const auth = useAuth();
-  const router = useRouter();
 
   const handleLogout = () => {
     auth.logout();
-    router.push('/auth');
+    // NEW: Use centralized navigation instead of router.push('/auth')
+    nav.goToAuth();
   };
 
   if (!auth.isAuthenticated || !auth.user) {
